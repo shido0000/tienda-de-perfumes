@@ -1,5 +1,6 @@
 "use client";
 
+import { useSiteTexts } from "@/lib/use-site-texts";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Bag, Heart, Clock, SunHorizon, User } from "@phosphor-icons/react/dist/ssr";
@@ -22,6 +23,7 @@ export function ProductDetail({
   initialSaved: boolean;
   signedIn: boolean;
 }) {
+  const t = useSiteTexts();
   const { add } = useCart();
   const { price } = usePrice();
   const [active, setActive] = useState(0);
@@ -34,7 +36,7 @@ export function ProductDetail({
 
   const toggleWishlist = async () => {
     if (!signedIn) {
-      setNotice("Ingresá para guardar este producto en tu lista de deseos.");
+      setNotice(t.pdLoginToSave);
       return;
     }
     const res = await fetch("/api/wishlist", {
@@ -48,7 +50,7 @@ export function ProductDetail({
       return;
     }
     setSaved(Boolean(data.saved));
-    setNotice(data.saved ? "Guardado en tu lista de deseos." : "Quitado de tu lista.");
+    setNotice(data.saved ? t.pdSavedNotice : t.pdUnsavedNotice);
   };
 
   return (
@@ -110,7 +112,7 @@ export function ProductDetail({
           <p className="mt-6 text-sm leading-relaxed text-muted">{product.description}</p>
           {product.notes && (
             <p className="mt-4 border-t border-line pt-4 text-sm text-ink">
-              <span className="text-muted">Pirámide olfativa: </span>
+              <span className="text-muted">{t.pdNotesLabel} </span>
               {product.notes}
             </p>
           )}
@@ -142,7 +144,7 @@ export function ProductDetail({
             <div className="flex items-center rounded-control border border-line">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                aria-label="Restar una unidad"
+                aria-label={t.pdQuantityMinus}
                 className="px-3 py-2 text-lg leading-none text-ink transition-colors hover:text-primary"
               >
                 −
@@ -152,7 +154,7 @@ export function ProductDetail({
               </span>
               <button
                 onClick={() => setQty((q) => Math.min(product.stock ?? 20, 20, q + 1))}
-                aria-label="Sumar una unidad"
+                aria-label={t.pdQuantityPlus}
                 className="px-3 py-2 text-lg leading-none text-ink transition-colors hover:text-primary"
               >
                 +
@@ -180,7 +182,7 @@ export function ProductDetail({
               className="flex items-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-on-primary transition-colors duration-200 ease-theme hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Bag size={17} weight="duotone" />
-              {soldOut ? "Sin stock" : added ? "Agregado" : "Agregar al carrito"}
+              {soldOut ? t.pdSoldOut : added ? t.pdAdded : t.pdAddCart}
             </button>
 
             <button
@@ -189,7 +191,7 @@ export function ProductDetail({
               className="flex items-center gap-2 rounded-control border border-line px-4 py-2.5 text-sm text-ink transition-colors hover:border-primary hover:text-primary"
             >
               <Heart size={17} weight={saved ? "fill" : "duotone"} />
-              {saved ? "En deseos" : "Guardar"}
+              {saved ? t.pdSaved : t.pdSave}
             </button>
           </div>
 
@@ -225,7 +227,7 @@ export function ProductDetail({
 
       {suggestions.length > 0 && (
         <section className="mt-16 border-t border-line pt-8" aria-label="Comprá junto con">
-          <h2 className="text-h3 text-ink">Comprá junto con</h2>
+          <h2 className="text-h3 text-ink">{t.pdTogetherTitle}</h2>
           <p className="mt-1 text-sm text-muted">
             Dos fragancias que combinan bien con {product.name}.
           </p>

@@ -79,10 +79,11 @@ export function AdminCombos({
   const toast = useToast();
   const confirm = useConfirm();
 
-  // Las ofertas se cargan y se guardan en USD: es la referencia con la que la
-  // tienda fija el precio del combo. En la web se muestra convertido a la
-  // moneda que el cliente eligió (ComboCard usa usePrice para eso).
-  const cur = currencies.find((c) => c.code === "USD") ?? currencies[0];
+  // Las ofertas se cargan y se guardan en CUP, la moneda base de la tienda:
+  // es la referencia con la que el dueño fija el precio del combo. En la web
+  // se muestra convertido a la moneda que el cliente ve (ComboCard usa
+  // usePrice para eso).
+  const cur = currencies.find((c) => c.code === "CUP") ?? currencies[0];
 
   // Suma "de lista" de los productos elegidos: sirve para sugerir el precio
   // anterior (lo que costaría sin la oferta).
@@ -97,8 +98,8 @@ export function AdminCombos({
 
   const startEdit = (c: Row) => {
     setEditId(c.id);
-    // El precio guardado está en la moneda del combo (CUP); el formulario
-    // trabaja en USD, así que se convierte al abrirlo.
+    // El precio guardado está en la moneda del combo; el formulario trabaja
+    // en CUP, así que se convierte al abrirlo.
     const from: Currency = currencies.find((x) => x.code === c.currency) ?? currencies[0];
     const priceUsd = convert(Number(c.price), from.code, cur.code, currencies);
     const compareUsd =

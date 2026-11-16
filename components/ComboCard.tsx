@@ -1,5 +1,6 @@
 "use client";
 
+import { useSiteTexts } from "@/lib/use-site-texts";
 import { useState } from "react";
 import Image from "next/image";
 import { Plus, Check, Package } from "@phosphor-icons/react/dist/ssr";
@@ -14,6 +15,7 @@ import { useToast } from "@/components/ui/ToastProvider";
  * el stock de cada producto que la compone.
  */
 export function ComboCard({ combo }: { combo: ComboDTO }) {
+  const t = useSiteTexts();
   const { price } = usePrice();
   const { add } = useCart();
   const { success } = useToast();
@@ -113,7 +115,7 @@ export function ComboCard({ combo }: { combo: ComboDTO }) {
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-control bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {added ? <Check size={16} weight="bold" /> : <Plus size={16} weight="bold" />}
-            {soldOut ? "Sin stock" : added ? "Agregada" : "Agregar oferta"}
+            {soldOut ? t.pdSoldOut : added ? t.comboAdded : t.comboAdd}
           </button>
         </div>
       </div>

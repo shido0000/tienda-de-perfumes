@@ -22,6 +22,14 @@ export function Hero({
   title,
   subtitle,
   ctaLabel,
+  cartCta = "Revisar mi carrito",
+  pickupLabel = "Retiro",
+  pickupValue = "Sin costo",
+  shippingLabel = "Envío",
+  shippingValue = "Por kilómetro",
+  paymentLabel = "Pago",
+  paymentValue = "Efectivo o transferencia",
+  imageAlt,
 }: {
   brand: string;
   tagline: string;
@@ -33,6 +41,14 @@ export function Hero({
   subtitle?: string;
   /** Rótulo del botón principal (editable en Administración → Textos). */
   ctaLabel?: string;
+  cartCta?: string;
+  pickupLabel?: string;
+  pickupValue?: string;
+  shippingLabel?: string;
+  shippingValue?: string;
+  paymentLabel?: string;
+  paymentValue?: string;
+  imageAlt?: string;
 }) {
   return (
     <section className="relative overflow-hidden border-b border-line">
@@ -85,22 +101,22 @@ export function Hero({
               href="/carrito"
               className="rounded-control border border-line bg-surface/70 px-5 py-2.5 text-sm font-semibold text-ink backdrop-blur transition-all duration-300 ease-theme hover:-translate-y-0.5 hover:border-primary hover:text-primary"
             >
-              Revisar mi carrito
+              {cartCta}
             </Link>
           </div>
 
           <dl className="mt-11 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6">
             <div>
-              <dt className="text-[11px] uppercase tracking-[0.14em] text-muted">Retiro</dt>
-              <dd className="mt-1 text-sm font-semibold text-ink">Sin costo</dd>
+              <dt className="text-[11px] uppercase tracking-[0.14em] text-muted">{pickupLabel}</dt>
+              <dd className="mt-1 text-sm font-semibold text-ink">{pickupValue}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-[0.14em] text-muted">Envío</dt>
-              <dd className="mt-1 text-sm font-semibold text-ink">Por kilómetro</dd>
+              <dt className="text-[11px] uppercase tracking-[0.14em] text-muted">{shippingLabel}</dt>
+              <dd className="mt-1 text-sm font-semibold text-ink">{shippingValue}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-[0.14em] text-muted">Pago</dt>
-              <dd className="mt-1 text-sm font-semibold text-ink">Efectivo o transferencia</dd>
+              <dt className="text-[11px] uppercase tracking-[0.14em] text-muted">{paymentLabel}</dt>
+              <dd className="mt-1 text-sm font-semibold text-ink">{paymentValue}</dd>
             </div>
           </dl>
         </div>
@@ -111,7 +127,7 @@ export function Hero({
             {heroImage ? (
               <SafeImage
                 src={heroImage}
-                alt={heroName ? `${heroName} — ${brand}` : brand}
+                alt={imageAlt?.trim() || (heroName ? `${heroName} — ${brand}` : brand)}
                 className="mx-auto aspect-[3/4] w-full max-w-[320px] rounded-card object-cover shadow-theme ring-1 ring-line/60"
               />
             ) : (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSiteTexts } from "@/lib/use-site-texts";
 import Link from "next/link";
 import { useState } from "react";
 import { Heart, Bag } from "@phosphor-icons/react/dist/ssr";
@@ -17,6 +18,7 @@ export function ProductCard({
   initialSaved?: boolean;
   signedIn?: boolean;
 }) {
+  const t = useSiteTexts();
   const { add } = useCart();
   const { price } = usePrice();
   const [saved, setSaved] = useState(initialSaved);
@@ -129,7 +131,7 @@ export function ProductCard({
             )}
           </span>
           <span className="text-[11px] text-muted">
-            {soldOut ? "Sin stock" : product.stock !== null ? `${product.stock} disponibles` : product.category}
+            {soldOut ? t.pdSoldOut : product.stock !== null ? `${product.stock} ${t.pdStockAvailable}` : product.category}
           </span>
         </div>
         {/* Altura fija para el sello de rebaja: sin ella, sólo las tarjetas en
@@ -150,7 +152,7 @@ export function ProductCard({
           className="mt-auto flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface px-3 py-2.5 text-sm text-ink transition-[transform,border-color,color,box-shadow] duration-200 ease-theme hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
         >
           <Bag size={16} weight="duotone" />
-          {soldOut ? "Sin stock" : added ? "Agregado al carrito" : "Agregar al carrito"}
+          {soldOut ? t.pdSoldOut : added ? t.pdAdded : t.pdAddCart}
         </button>
         {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       </div>

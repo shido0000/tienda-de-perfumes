@@ -27,7 +27,7 @@ type Draft = {
   description: string;
   categoryId: string;
   notes: string;
-  /** Precio de venta en USD (la tienda piensa en dólares; se guarda en USD). */
+  /** Precio de venta en CUP (moneda base de la tienda; se guarda en CUP). */
   price: string;
   costUsd: string;
   image: string;
@@ -58,14 +58,37 @@ const emptyDraft: Draft = {
   visible: true,
 };
 
-/** Convierte el precio guardado a USD para editarlo en el formulario. */
-function toUsd(amount: number, from: string, currencies: Currency[]): number {
-  if (from.toUpperCase() === "USD") return amount;
+/**
+ * Convierte a CUP el precio guardado de un producto, que es como el dueño lo
+ * escribe en el formulario. CUP es la moneda base: en CUP el precio no se
+ * toca; si el producto quedó guardado en otra moneda se pasa usando las tasas
+ * que la tienda define en Ajustes.
+ */
+function toCup(amount: number, from: string, currencies: Currency[]): number {
+  if (from.toUpperCase() === "CUP") return amount;
   const src = currencies.find((c) => c.code.toUpperCase() === from.toUpperCase());
-  const usd = currencies.find((c) => c.code.toUpperCase() === "USD");
-  if (!src || !usd) return amount;
+  if (!src) return amount;
   // rate = cuántas unidades de CUP vale 1 unidad de la moneda.
-  return Math.round(((amount * src.rate) / usd.rate) * 100) / 100;
+  return Math.round(amount * src.rate * 100) / 100;
+}
+
+/** Muestra un importe en CUP con el símbolo de la tienda. */
+function cupLabel(amount: number): string {
+  const n = Math.round(Number(amount) * 100) / 100;
+  const body = n.toFixed(0) === String(n).split(".")[0] ? String(Math.round(n)) : n.toFixed(2);
+  return `$ ${body}`;
+}
+
+/**
+ * Equivalente del precio en la moneda que el visitante ve (la primera moneda
+ * distinta de CUP que la tienda tenga configurada), sólo para referencia del
+ * panel. Si no hay otra moneda se muestra igual el precio en CUP.
+ */
+function otherPrice(amountCup: number, currencies: Currency[]): string {
+  const other = currencies.find((c) => c.code.toUpperCase() !== "CUP");
+  if (!other || !other.rate) return cupLabel(amountCup);
+  const value = Math.round((amountCup / other.rate) * 100) / 100;
+  return `${other.symbol} ${value.toFixed(2)}`;
 }
 
 export function AdminProducts({
@@ -114,7 +137,7 @@ export function AdminProducts({
       description: p.description,
       categoryId: p.categoryId ?? categories.find((c) => c.name === p.category)?.id ?? "",
       notes: p.notes ?? "",
-      price: String(toUsd(p.price, p.currency, currencies)),
+      price: String(toCup(p.price, p.currency, currencies)),
       costUsd: p.costUsd === null || p.costUsd === undefined ? "" : String(p.costUsd),
       image: p.images[0] ?? "",
       stock: p.stock === null ? "" : String(p.stock),
@@ -141,7 +164,7 @@ export function AdminProducts({
       description: p.description,
       categoryId: p.categoryId ?? categories.find((c) => c.name === p.category)?.id ?? "",
       notes: p.notes ?? "",
-      price: String(toUsd(p.price, p.currency, currencies)),
+      price: String(toCup(p.price, p.currency, currencies)),
       costUsd: p.costUsd === null || p.costUsd === undefined ? "" : String(p.costUsd),
       image: p.images[0] ?? "",
       stock: "0",
@@ -212,7 +235,7 @@ export function AdminProducts({
       categoryId: category.id,
       notes: draft.notes.trim() || null,
       price,
-      currency: "USD",
+      currency: "CUP",
       costUsd,
       images: draft.image.trim() ? [draft.image.trim()] : [],
       visible: draft.visible,
@@ -288,10 +311,12 @@ export function AdminProducts({
   const inputClass =
     "w-full rounded-control border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
-  const priceUsd = (p: ProductDTO) => {
-    const v = toUsd(p.price, p.currency, currencies);
-    return `US$ ${v.toFixed(2)}`;
-  };
+  /** Precio en CUP del producto, ya normalizado. */
+  const priceCup = (p: ProductDTO) =>
+    toCup(p.price, p.currency, currencies);
+
+  /** Precio en la moneda de referencia del visitante, sólo informativo. */
+  const priceOther = (p: ProductDTO) => otherPrice(priceCup(p), currencies);
 
   const stockBadge = (p: ProductDTO) => {
     if (p.stock === null) return <span className="text-muted">Sin control</span>;
@@ -410,7 +435,7 @@ export function AdminProducts({
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <label className="block">
-            <span className="text-xs font-medium text-muted">Precio de venta (USD)</span>
+            <span className="text-xs font-medium text-muted">Precio de venta (CUP)</span>
             <input
               type="number"
               step="0.01"
@@ -421,7 +446,8 @@ export function AdminProducts({
               placeholder="25.00"
             />
             <span className="mt-1 block text-[11px] text-muted">
-              El catálogo lo muestra convertido a la moneda de la tienda.
+              Escribí el precio en pesos cubanos. Las demás monedas se calculan
+              solas con las tasas de Administración → Ajustes.
             </span>
           </label>
           <label className="block">
@@ -694,9 +720,9 @@ export function AdminProducts({
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                     <span className="tabular-nums font-medium text-ink">
-                      {p.currency} {p.price.toFixed(2)}
+                      {cupLabel(priceCup(p))}
                     </span>
-                    <span className="tabular-nums text-muted">{priceUsd(p)}</span>
+                    <span className="tabular-nums text-muted">{priceOther(p)}</span>
                     <span className="tabular-nums text-muted">{stockBadge(p)}</span>
                     {!p.visible && (
                       <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] text-danger">
@@ -740,7 +766,7 @@ export function AdminProducts({
                       </td>
                       <td className="px-4 py-3 text-muted">{p.category}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-ink">
-                        {priceUsd(p)}
+                        {cupLabel(priceCup(p))}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted">
                         {p.costUsd === null || p.costUsd === undefined

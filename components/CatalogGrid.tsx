@@ -8,6 +8,7 @@ import { Reveal } from "./Reveal";
 import { EmptyState } from "./EmptyState";
 import type { CategoryDTO, ProductDTO } from "@/lib/types";
 import { useSettings } from "@/lib/settings-context";
+import { useSiteTexts } from "@/lib/use-site-texts";
 import { cleanEditableText } from "@/lib/editable-text";
 
 type Sort = "new" | "price-asc" | "price-desc" | "name";
@@ -34,6 +35,7 @@ export function CatalogGrid({
 }) {
   const [query, setQuery] = useState("");
   const { settings } = useSettings();
+  const t = useSiteTexts();
   const waHref = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(
     `Hola ${settings.brand}, busco un perfume que no está en el catálogo.`,
   )}`;
@@ -135,13 +137,13 @@ export function CatalogGrid({
   const filterPanel = (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <label className="block">
-        <span className="text-xs uppercase tracking-[0.1em] text-muted">Categoría</span>
+        <span className="text-xs uppercase tracking-[0.1em] text-muted">{t.filterCategory}</span>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className={`${control} mt-1.5 w-full`}
         >
-          <option value="all">Todas</option>
+          <option value="all">{t.optAllCategories}</option>
           {categories.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -151,13 +153,13 @@ export function CatalogGrid({
       </label>
 
       <label className="block">
-        <span className="text-xs uppercase tracking-[0.1em] text-muted">Marca</span>
+        <span className="text-xs uppercase tracking-[0.1em] text-muted">{t.filterBrand}</span>
         <select
           value={brand}
           onChange={(e) => setBrand(e.target.value)}
           className={`${control} mt-1.5 w-full`}
         >
-          <option value="all">Todas</option>
+          <option value="all">{t.optAllBrands}</option>
           {brands.map((b) => (
             <option key={b} value={b}>
               {b}
@@ -167,67 +169,67 @@ export function CatalogGrid({
       </label>
 
       <label className="block">
-        <span className="text-xs uppercase tracking-[0.1em] text-muted">Para quién</span>
+        <span className="text-xs uppercase tracking-[0.1em] text-muted">{t.filterGender}</span>
         <select
           value={gender}
           onChange={(e) => setGender(e.target.value)}
           className={`${control} mt-1.5 w-full`}
         >
-          <option value="all">Todos</option>
-          <option value="MUJER">Mujer</option>
-          <option value="HOMBRE">Hombre</option>
-          <option value="UNISEX">Unisex</option>
+          <option value="all">{t.optAllGenders}</option>
+          <option value="MUJER">{t.genderWoman}</option>
+          <option value="HOMBRE">{t.genderMan}</option>
+          <option value="UNISEX">{t.genderUnisex}</option>
         </select>
       </label>
 
       <label className="block">
-        <span className="text-xs uppercase tracking-[0.1em] text-muted">Ocasión</span>
+        <span className="text-xs uppercase tracking-[0.1em] text-muted">{t.filterOccasion}</span>
         <select
           value={occasion}
           onChange={(e) => setOccasion(e.target.value)}
           className={`${control} mt-1.5 w-full`}
         >
-          <option value="all">Todas</option>
-          <option value="DIA">Día</option>
-          <option value="NOCHE">Noche</option>
-          <option value="AMBAS">Día y noche</option>
+          <option value="all">{t.optAllOccasions}</option>
+          <option value="DIA">{t.occasionDay}</option>
+          <option value="NOCHE">{t.occasionNight}</option>
+          <option value="AMBAS">{t.occasionBoth}</option>
         </select>
       </label>
 
       <div>
-        <span className="text-xs uppercase tracking-[0.1em] text-muted">Precio</span>
+        <span className="text-xs uppercase tracking-[0.1em] text-muted">{t.filterPrice}</span>
         <div className="mt-1.5 flex items-center gap-2">
           <input
             value={min}
             onChange={(e) => setMin(e.target.value.replace(/[^\d.]/g, ""))}
-            placeholder="Mín"
+            placeholder={t.filterMinPrice}
             inputMode="decimal"
-            aria-label="Precio mínimo"
+            aria-label={t.filterMinPrice}
             className={`${control} w-full tabular-nums`}
           />
           <span className="text-muted">–</span>
           <input
             value={max}
             onChange={(e) => setMax(e.target.value.replace(/[^\d.]/g, ""))}
-            placeholder="Máx"
+            placeholder={t.filterMaxPrice}
             inputMode="decimal"
-            aria-label="Precio máximo"
+            aria-label={t.filterMaxPrice}
             className={`${control} w-full tabular-nums`}
           />
         </div>
       </div>
 
       <label className="block">
-        <span className="text-xs uppercase tracking-[0.1em] text-muted">Ordenar</span>
+        <span className="text-xs uppercase tracking-[0.1em] text-muted">{t.filterSort}</span>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as Sort)}
           className={`${control} mt-1.5 w-full`}
         >
-          <option value="new">Más recientes</option>
-          <option value="price-asc">Precio: menor a mayor</option>
-          <option value="price-desc">Precio: mayor a menor</option>
-          <option value="name">Nombre (A–Z)</option>
+          <option value="new">{t.sortNewest}</option>
+          <option value="price-asc">{t.sortPriceAsc}</option>
+          <option value="price-desc">{t.sortPriceDesc}</option>
+          <option value="name">{t.sortName}</option>
         </select>
       </label>
 
@@ -238,7 +240,7 @@ export function CatalogGrid({
           onChange={(e) => setInStock(e.target.checked)}
           className="h-4 w-4 rounded border-line accent-primary"
         />
-        Mostrar solo productos con stock
+        {t.filterOnlyStock}
       </label>
     </div>
   );
@@ -266,8 +268,8 @@ export function CatalogGrid({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Perfume, casa o familia olfativa…"
-              aria-label="Buscar perfumes"
+              placeholder={t.filterSearchPlaceholder}
+              aria-label={t.filterSearchAria}
               className="w-full rounded-control border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted transition-colors hover:border-primary/60 focus-visible:outline-none"
             />
           </div>
@@ -278,7 +280,7 @@ export function CatalogGrid({
             className={`flex items-center justify-center gap-1.5 ${control} whitespace-nowrap`}
           >
             <SlidersHorizontal size={15} />
-            Filtros
+            {t.filterToggle}
             {activeFilters > 0 && (
               <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-on-primary">
                 {activeFilters}
@@ -297,18 +299,18 @@ export function CatalogGrid({
 
       {activeFilters > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted">Filtros activos:</span>
+          <span className="text-xs text-muted">{t.activeFiltersLabel}</span>
           {category !== "all" && (
             <Chip label={category} onClear={() => setCategory("all")} />
           )}
           {brand !== "all" && <Chip label={brand} onClear={() => setBrand("all")} />}
           {gender !== "all" && (
             <Chip
-              label={gender === "MUJER" ? "Mujer" : gender === "HOMBRE" ? "Hombre" : "Unisex"}
+              label={gender === "MUJER" ? t.genderWoman : gender === "HOMBRE" ? t.genderMan : t.genderUnisex}
               onClear={() => setGender("all")}
             />
           )}
-          {inStock && <Chip label="Con stock" onClear={() => setInStock(false)} />}
+          {inStock && <Chip label={t.filterInStockChip} onClear={() => setInStock(false)} />}
           {(min.trim() || max.trim()) && (
             <Chip
               label={`${min || "0"} – ${max || "∞"}`}
@@ -322,7 +324,7 @@ export function CatalogGrid({
             onClick={clear}
             className="text-xs text-primary underline hover:no-underline"
           >
-            Limpiar todo
+            {t.clearFilters}
           </button>
         </div>
       )}
@@ -340,25 +342,25 @@ export function CatalogGrid({
       ) : products.length === 0 ? (
         filtered ? (
           <div className="mt-16 flex flex-col items-center rounded-card border border-dashed border-line px-6 py-16 text-center">
-            <p className="font-display text-h3 text-ink">No encontramos productos</p>
+            <p className="font-display text-h3 text-ink">{t.emptySearchTitle}</p>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">
               {query.trim()
-                ? `Nada coincide con “${query.trim()}”. Probá con la categoría o el nombre de la marca.`
-                : "Ningún producto coincide con estos filtros."}
+                ? t.emptySearchQuery
+                : t.emptySearchFilters}
             </p>
             <button
               onClick={clear}
               className="mt-5 rounded-control border border-line px-4 py-2 text-sm text-ink transition-colors duration-200 ease-theme hover:border-primary hover:text-primary"
             >
-              Ver todo el catálogo
+              {t.emptySearchCta}
             </button>
           </div>
         ) : (
           <div className="mt-16">
             <EmptyState
-              title="El catálogo está vacío"
-              description="Todavía no hay perfumes publicados. Si administrás la tienda, entrá al panel para cargar el primero; el catálogo se actualiza solo."
-              actionLabel="Ir al panel"
+              title={t.emptyCatalogTitle}
+              description={t.emptyCatalogBody}
+              actionLabel={t.emptyCatalogCta}
               actionHref="/admin"
             />
           </div>
@@ -366,7 +368,7 @@ export function CatalogGrid({
       ) : (
         <>
           <p className="mt-6 text-xs text-muted">
-            {products.length} {products.length === 1 ? "producto" : "productos"}
+            {products.length} {products.length === 1 ? t.countProductSingular : t.countProductPlural}
           </p>
           <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p, i) => (

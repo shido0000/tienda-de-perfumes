@@ -1,5 +1,6 @@
 "use client";
 
+import { useSiteTexts } from "@/lib/use-site-texts";
 import { useEffect, useState } from "react";
 import { Star } from "@phosphor-icons/react/dist/ssr";
 import type { ReviewDTO } from "@/lib/types";
@@ -18,6 +19,7 @@ export function ReviewsBlock({
   productId: string;
   signedIn: boolean;
 }) {
+  const t = useSiteTexts();
   const [reviews, setReviews] = useState<ReviewDTO[]>([]);
   const [average, setAverage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ export function ReviewsBlock({
   return (
     <section className="mt-14 border-t border-line pt-8" aria-label="Opiniones de clientas">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-h3 text-ink">Opiniones</h2>
+        <h2 className="text-h3 text-ink">{t.reviewsHeading}</h2>
         {reviews.length > 0 && (
           <span className="flex items-center gap-1.5 text-sm text-muted">
             <Star size={16} weight="fill" className="text-primary" />
@@ -93,7 +95,7 @@ export function ReviewsBlock({
       </div>
 
       {loading ? (
-        <p className="mt-4 text-sm text-muted">Cargando opiniones…</p>
+        <p className="mt-4 text-sm text-muted">{t.reviewsLoading}</p>
       ) : reviews.length === 0 ? (
         <p className="mt-4 text-sm text-muted">
           Todavía no hay opiniones publicadas de este perfume. Si ya lo reservaste, podés ser la
@@ -123,7 +125,7 @@ export function ReviewsBlock({
       )}
 
       <div className="mt-8 rounded-card border border-line bg-surface p-5">
-        <h3 className="text-sm font-medium text-ink">Contá tu experiencia</h3>
+        <h3 className="text-sm font-medium text-ink">{t.reviewsFormTitle}</h3>
         {!signedIn ? (
           <p className="mt-2 text-sm text-muted">
             Ingresá a tu cuenta para opinar. Solo aceptamos opiniones de perfumes que hayas

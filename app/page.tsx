@@ -96,6 +96,14 @@ export default async function HomePage() {
         title={settings.heroTitle}
         subtitle={settings.heroSubtitle}
         ctaLabel={t.heroCta}
+        cartCta={t.heroCartCta}
+        pickupLabel={t.heroPickupLabel}
+        pickupValue={t.heroPickupValue}
+        shippingLabel={t.heroShippingLabel}
+        shippingValue={t.heroShippingValue}
+        paymentLabel={t.heroPaymentLabel}
+        paymentValue={t.heroPaymentValue}
+        imageAlt={t.heroImageAlt}
       />
 
       <div id="catalogo" className="mt-20 scroll-mt-24">

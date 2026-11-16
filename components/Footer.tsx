@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { StoreSettings } from "@/lib/cart-context";
 import { InstallButton } from "@/components/InstallButton";
-import { DEFAULT_SITE_TEXTS } from "@/lib/site-texts";
+import { resolveSiteTexts } from "@/lib/site-texts";
 
 /**
  * Footer. Every fact here comes from StoreSettings so the address the customer
@@ -9,7 +9,7 @@ import { DEFAULT_SITE_TEXTS } from "@/lib/site-texts";
  * owner-editable site texts (Administración → Textos).
  */
 export function Footer({ settings }: { settings: StoreSettings }) {
-  const t = settings.siteTexts ?? DEFAULT_SITE_TEXTS;
+  const t = resolveSiteTexts(settings.siteTexts);
   const waHref = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(
     `Hola ${settings.brand}, quería consultar por un producto.`,
   )}`;
@@ -82,26 +82,26 @@ export function Footer({ settings }: { settings: StoreSettings }) {
         </div>
 
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted">Legal</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-muted">{t.footerLegalHeading}</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
               <Link href="/legal/terminos" className="text-ink transition-colors hover:text-primary">
-                Términos y condiciones
+                {t.footerLinkTerms}
               </Link>
             </li>
             <li>
               <Link href="/legal/reservas-pagos" className="text-ink transition-colors hover:text-primary">
-                Reservas, pagos y devoluciones
+                {t.footerLinkReservations}
               </Link>
             </li>
             <li>
               <Link href="/legal/privacidad" className="text-ink transition-colors hover:text-primary">
-                Política de privacidad
+                {t.footerLinkPrivacy}
               </Link>
             </li>
             <li>
               <Link href="/legal/cookies" className="text-ink transition-colors hover:text-primary">
-                Política de cookies
+                {t.footerLinkCookies}
               </Link>
             </li>
           </ul>

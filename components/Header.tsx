@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { useCart } from "@/lib/cart-context";
 import { useSettings } from "@/lib/settings-context";
-import { DEFAULT_SITE_TEXTS } from "@/lib/site-texts";
+import { resolveSiteTexts } from "@/lib/site-texts";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SafeImage } from "@/components/SafeImage";
 
@@ -23,7 +23,7 @@ type SessionUser = { id: string; email: string; name: string | null; role: strin
 export function Header({ user }: { user: SessionUser }) {
   const { count } = useCart();
   const { settings } = useSettings();
-  const t = settings.siteTexts ?? DEFAULT_SITE_TEXTS;
+  const t = resolveSiteTexts(settings.siteTexts);
   const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const pathname = usePathname();
@@ -112,7 +112,7 @@ export function Header({ user }: { user: SessionUser }) {
 
           <Link
             href="/deseos"
-            aria-label="Lista de deseos"
+            aria-label={t.navWishlist}
             className="hidden rounded-control p-2 text-muted transition-colors hover:text-primary sm:block"
           >
             <Heart size={20} weight="duotone" />
@@ -120,7 +120,7 @@ export function Header({ user }: { user: SessionUser }) {
 
           <Link
             href="/carrito"
-            aria-label={`Carrito, ${count} ${count === 1 ? "artículo" : "artículos"}`}
+            aria-label={`${t.navCart}, ${count}`}
             className="relative rounded-control p-2 text-muted transition-colors hover:text-primary"
           >
             <Bag size={20} weight="duotone" />
@@ -135,7 +135,7 @@ export function Header({ user }: { user: SessionUser }) {
             <>
               <Link
                 href={accountHref}
-                aria-label="Mi cuenta"
+                aria-label={t.navAccount}
                 className="hidden items-center gap-1.5 whitespace-nowrap rounded-control border border-line px-3 py-1.5 text-xs text-ink transition-colors hover:border-primary hover:text-primary sm:flex"
               >
                 <UserCircle size={16} weight="duotone" aria-hidden="true" />
