@@ -1,0 +1,512 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Health {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  phone         String?
+  role          String   @default("CLIENT") // CLIENT | ADMIN
+  createdAt     DateTime @default(now())
+
+  reservations  Reservation[]
+  wishlist      WishlistItem[]
+  cartItems     CartItem[]
+  withdrawals   WithdrawalRequest[] // legado, sin uso
+  pushSubs      PushSubscription[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@index([order])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  brand       String
+  description String
+  category    String   @default("General") // nombre de la categoría
+  categoryId  String?
+  notes       String?
+  price       Decimal  @db.Decimal(12, 2)
+  /// Precio anterior, solo para mostrar la REBAJA tachada. null = sin rebaja.
+  compareAtPrice Decimal? @db.Decimal(12, 2)
+  currency    String   @default("CUP")
+  costUsd     Decimal? @db.Decimal(12, 2) // precio de costo — solo visible para administración
+  images      String[] @default([])
+  visible     Boolean  @default(true)
+  stock       Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// Cuántas horas aguanta la fragancia en la piel (texto corto: "6-8 h").
+  duration     String?
+  /// Ocasión sugerida: DIA | NOCHE | AMBAS.
+  occasion     String?
+  /// Para quién es la fragancia: HOMBRE | MUJER | UNISEX.
+  gender       String   @default("UNISEX")
+  /// Preguntas frecuentes de ESTE perfume, editadas por la tienda.
+  /// Formato: [{ "q": "¿Es original?", "a": "Sí, ..." }]
+  faqs         Json     @default("[]")
+
+  categoryRef      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  reservationItems ReservationItem[]
+  wishlist         WishlistItem[]
+  cartItems        CartItem[]
+  comboItems       ComboItem[]
+  stockAlerts      StockAlert[]
+  reviews          Review[]
+
+  @@index([visible, createdAt])
+  @@index([category])
+}
+
+model Reservation {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  userId       String
+  currency     String
+  subtotal     Decimal  @db.Decimal(12, 2)
+  deliveryType String   // PICKUP | DELIVERY
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  distanceKm   Float?
+  shippingCost Decimal  @default(0) @db.Decimal(12, 2)
+  total        Decimal  @db.Decimal(12, 2)
+  paymentMethod String  // CASH | TRANSFER
+  transferProofUrl String?
+  status       String   @default("PENDING") // PENDING | CONFIRMED | PREPARING | SHIPPED | DELIVERED | CANCELLED
+  customerNote String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       ReservationItem[]
+  withdrawals WithdrawalRequest[] // legado, sin uso
+
+  @@index([userId])
+}
+
+model ReservationItem {
+  id              String  @id @default(cuid())
+  reservationId   String
+  productId       String?
+  /// Si la línea es una OFERTA (combo), guarda el combo vendido.
+  comboId         String?
+  name            String
+  brand           String
+  priceOriginal   Decimal @db.Decimal(12, 2)
+  currencyOriginal String
+  priceConverted  Decimal @db.Decimal(12, 2)
+  orderCurrency   String
+  quantity        Int
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  product     Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// MODELO LEGADO (no lo usa la app).
+// La función de "arrepentimiento" se retiró del producto, pero su tabla ya
+// existe en la base de producción y puede contener registros de clientes.
+// Si este modelo se borra del esquema, `prisma db push` intenta hacer
+//   DROP TABLE "WithdrawalRequest"
+// y el deploy se detiene por riesgo de pérdida de datos (correcto).
+// Se mantiene declarado, sin pantallas ni endpoints, para que los despliegues
+// sigan siendo aditivos y no se borre nada.
+// Para eliminarla algún día, hay que hacerlo en dos pasos y de forma explícita:
+//   1) volcar los datos si hacen falta  2) correr a mano
+//   DROP TABLE "WithdrawalRequest";
+// ---------------------------------------------------------------------------
+model WithdrawalRequest {
+  id            String   @id @default(cuid())
+  userId        String?
+  reservationId String?
+  name          String
+  email         String
+  reason        String
+  status        String   @default("NEW") // NEW | REVIEWING | RESOLVED
+  createdAt     DateTime @default(now())
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model StoreSettings {
+  id           String  @id @default("singleton")
+  brand        String  @default("Mist & Mood")
+  tagline      String  @default("")
+  bankDetails  String  @default("Banco Ejemplo\nTitular: Mist & Mood S.R.L.\nCUENTA: 0000000000\nCBU: 0000000000000000000000\nAlias: MIST-AND-MOOD")
+  whatsapp     String  @default("5491100000000")
+  whatsappDisplay String @default("+54 911 0000 0000")
+  storeAddress String  @default("123 Calle Ejemplo, Buenos Aires")
+  storeLat     Float   @default(-34.6037)
+  storeLng     Float   @default(-58.3816)
+  baseRate     Decimal @default(250) @db.Decimal(12, 2)
+  perKm        Decimal @default(120) @db.Decimal(12, 2)
+  maxRadius    Float   @default(15)
+  baseCurrency String  @default("CUP")
+  displayCurrency String @default("CUP") // moneda en la que se muestran los precios al cliente
+  notificationPhones Json @default("[]") // números de WhatsApp que reciben avisos de reservas
+  currencies   Json    @default("[{\"code\":\"CUP\",\"symbol\":\"$\",\"rate\":1,\"label\":\"Peso cubano\"},{\"code\":\"USD\",\"symbol\":\"US$\",\"rate\":320,\"label\":\"Dólar\"},{\"code\":\"EUR\",\"symbol\":\"€\",\"rate\":345,\"label\":\"Euro\"},{\"code\":\"MLC\",\"symbol\":\"MLC\",\"rate\":270,\"label\":\"MLC\"}]")
+
+  // ---- Imagen de marca -----------------------------------------------
+  // Logo de la tienda: data URI (subida desde el panel) o URL externa.
+  logoUrl      String? @db.Text
+
+  // ---- Textos legales editables (formato simple Markdown) -------------
+  termsText        String @db.Text @default("")
+  privacyText      String @db.Text @default("")
+  cookiesText      String @db.Text @default("")
+  reservationsText String @db.Text @default("")
+
+  // ---- Copy del catálogo / portada ------------------------------------
+  catalogTitle String @default("Catálogo")
+  catalogIntro String @default("Filtrá por familia olfativa, marca o precio para encontrar tu fragancia.")
+  heroTitle    String @default("")
+  heroSubtitle String @default("")
+
+  // ---- Textos editables de toda la web (nav, secciones, pie) -----------
+  // JSON con { navCatalog, offerTitle, footerAbout, ... }. Ver lib/site-texts.ts.
+  siteTexts    Json   @default("{}")
+
+  // ---- SEO ------------------------------------------------------------
+  seoTitle       String @default("Mist & Mood — Perfumería cubana")
+  seoDescription String @default("Perfumes con reserva online y entrega en La Habana. Retiro en tienda o envío por kilómetro.")
+  seoKeywords    String @default("perfumes, perfumería, fragancias, perfumes originales, La Habana, Cuba, reservar perfume")
+  siteUrl        String @default("")
+  /// Código de verificación de Google Search Console (meta etiqueta).
+  googleSiteVerification String @default("")
+
+  // ---- Web Push (avisos de reservas) ---------------------------------
+  // Se generan solas la primera vez que un administrador activa los avisos,
+  // así no hace falta configurar variables de entorno a mano.
+  vapidPublicKey  String @default("")
+  vapidPrivateKey String @default("")
+
+  // ---- Asistente con IA ----------------------------------------------
+  // Clave del proveedor gratuito (Groq / OpenRouter / Google AI Studio).
+  // Se guarda en la base para poder cambiarla desde el panel sin redeploy.
+  aiApiKey     String @default("") @db.Text
+  /// "groq" | "openrouter" | "gemini". Vacío = el que tenga clave en el entorno.
+  aiProvider   String @default("")
+  aiModel      String @default("")
+
+  // ---- Avisos automáticos a clientes ---------------------------------
+  // Interruptores maestros: si están apagados, el cron no encola nada.
+  autoRestockEnabled    Boolean @default(true)
+  autoRepurchaseEnabled Boolean @default(true)
+  /// Días desde la entrega para mandar el recordatorio de reposición.
+  repurchaseDays        Int     @default(60)
+  /// Remitente de los correos automáticos (debe estar validado en el proveedor).
+  emailFrom     String @default("")
+  /// Clave del proveedor de correo (Resend o Brevo). Vacía = no se envía correo.
+  emailApiKey   String @default("") @db.Text
+  /// "resend" | "brevo". Vacío = se deduce por la forma de la clave.
+  emailProvider String @default("")
+  /// Correo del dueño que recibe un resumen de lo enviado.
+  ownerEmail    String @default("")
+
+  updatedAt    DateTime @updatedAt
+}
+
+/// Suscripción Web Push de un dispositivo (avisos de reservas a administradores).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String   @db.Text
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  title       String
+  platform    String   // FACEBOOK | INSTAGRAM | WHATSAPP | TWITTER
+  message     String
+  link        String?
+  /// Imagen de la publicación (data URL subida o enlace).
+  image       String?
+  status      String   @default("DRAFT") // DRAFT | SCHEDULED | PUBLISHED
+  scheduledAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+/// Plantilla de mensaje guardada para reusarla con otro segmento de clientes.
+/// Solo guarda el TEXTO (y el enlace), no la campaña: así el dueño arma una vez
+/// el mensaje de WhatsApp y lo reutiliza con quien quiera.
+model CampaignTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  platform  String   @default("WHATSAPP") // FACEBOOK | INSTAGRAM | WHATSAPP | TWITTER
+  message   String   @db.Text
+  link      String?
+  /// Cuántas veces se usó (se incrementa al copiarlo desde el panel).
+  uses      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Ofertas (combos), rebajas y banners promocionales
+// ---------------------------------------------------------------------------
+
+/// Un COMBO ("oferta"): varios productos vendidos juntos a un precio especial.
+/// Al reservarse, el stock se descuenta de cada producto que lo compone.
+model Combo {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  image       String?
+  /// OJO: Decimal(12,2) y default "CUP" es lo que YA existe en la base en vivo.
+  /// Cambiar la precisión (p. ej. a 12,4) hace que `prisma db push` lo detecte
+  /// como ALTER destructivo y el deploy se detenga. Si algún día hace falta
+  /// más precisión, se hace en dos pasos (columna nueva → copiar datos →
+  /// borrar la vieja), nunca cambiando la columna en el sitio.
+  price       Decimal  @db.Decimal(12, 2)
+  /// Precio de lista (suma normal de los productos) para mostrar el ahorro.
+  compareAtPrice Decimal? @db.Decimal(12, 2)
+  currency    String   @default("CUP")
+  visible     Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items     ComboItem[]
+
+  @@index([visible, order])
+}
+
+model ComboItem {
+  id        String @id @default(cuid())
+  comboId   String
+  productId String
+  quantity  Int    @default(1)
+
+  combo   Combo   @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([comboId, productId])
+}
+
+/// Banner promocional configurable desde el panel. Puede promocionar la propia
+/// tienda o un sitio externo, y se muestra en la portada y/o el catálogo.
+model Banner {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String   @default("")
+  image       String?
+  /// Texto del botón ("Ver ofertas", "Ir al sitio"…).
+  ctaLabel    String   @default("")
+  /// A dónde lleva el botón: ruta interna (/ofertas) o URL externa (https://…).
+  ctaUrl      String   @default("")
+  /// Fondo del banner cuando no hay imagen (hex o cualquier color CSS).
+  background  String   @default("#1b1a17")
+  textColor   String   @default("#f6f1e6")
+  /// Páginas donde aparece: HOME | CATALOG | BOTH
+  placement   String   @default("HOME")
+  visible     Boolean  @default(true)
+  order       Int      @default(0)
+  /// Fecha opcional de fin: después de esta fecha deja de mostrarse.
+  endsAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([visible, placement, order])
+}
+
+/// Conversación del asistente virtual. Se guarda para que el bot recuerde el
+/// hilo y no responda cosas distintas a la misma persona.
+model ChatMessage {
+  id        String   @id @default(cuid())
+  /// Identificador anónimo del visitante (se guarda en su navegador).
+  sessionId String
+  role      String // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+/// "Avísame cuando llegue": un cliente deja su contacto para un perfume agotado
+/// o con poco stock. El panel los lista y los marca como avisados al cargar
+/// unidades nuevas.
+model StockAlert {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  name      String?
+  email     String?
+  phone     String?
+  /// NEW | NOTIFIED | CLOSED
+  status    String   @default("NEW")
+  notifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([productId, status])
+}
+
+/// Reseña de un cliente. Solo se acepta si esa persona reservó el producto de
+/// verdad, y solo se publica cuando la tienda la aprueba.
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      String
+  /// Nombre visible (se publica solo el primer nombre).
+  authorName  String
+  rating      Int      @default(5)
+  comment     String   @db.Text
+  /// PENDING | APPROVED | REJECTED
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+
+  @@unique([productId, userId])
+  @@index([productId, status])
+}
+
+/// Intento de pago abandonado: alguien llegó al checkout, dejó sus datos y no
+/// confirmó la reserva. Sirve para escribirle por WhatsApp.
+model CheckoutIntent {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String?
+  email     String?
+  phone     String?
+  /// Resumen del carrito en texto ("Rosa + Cedro ×1 · Noir ×2").
+  summary   String   @db.Text
+  itemCount Int      @default(0)
+  total     Decimal  @default(0) @db.Decimal(12, 2)
+  currency  String   @default("CUP")
+  /// OPEN | CONTACTED | RECOVERED | DISMISSED
+  status    String   @default("OPEN")
+  contactedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+/// Lista de espera de lanzamientos: alguien dejó su contacto para enterarse
+/// primero cuando llegue una novedad al catálogo.
+model LaunchWaitlist {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String?
+  email     String?
+  phone     String?
+  /// Qué novedad le interesa (familia olfativa, marca o "general").
+  interest  String   @default("general")
+  /// NEW | NOTIFIED | CLOSED
+  status    String   @default("NEW")
+  notifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+/// Cola de mensajes automáticos.
+///
+/// Todo aviso que la tienda le manda a un cliente (o a sí misma) se guarda acá
+/// ANTES de intentar enviarlo. Así, si el proveedor de correo/WhatsApp falla o
+/// todavía no está configurado, el mensaje no se pierde: queda en estado FAILED
+/// o SKIPPED y se puede reintentar desde el panel. Estados:
+///   PENDING  — esperando envío (lo toma el cron)
+///   SENT     — el proveedor lo aceptó
+///   FAILED   — el proveedor lo rechazó; se reintenta con backoff
+///   SKIPPED  — falta configurar el canal (no hay clave) o el cliente no dejó
+///              un contacto para ese canal. Nunca se finge un envío.
+model OutboxMessage {
+  id        String   @id @default(cuid())
+  /// RESTOCK | REPURCHASE | CAMPAIGN | MANUAL | LAUNCH
+  kind      String   @default("MANUAL")
+  /// EMAIL | WHATSAPP | PUSH
+  channel   String
+  /// Destinatario: correo, teléfono sin signos, o el id de usuario para PUSH.
+  recipient String
+  subject   String   @default("")
+  body      String   @db.Text
+  /// PENDING | SENT | FAILED | SKIPPED
+  status    String   @default("PENDING")
+  /// Motivo legible del estado (por qué falló o por qué se omitió).
+  error     String?  @db.Text
+  attempts  Int      @default(0)
+  /// Clave de deduplicación: evita mandar dos veces el mismo aviso.
+  /// Ej.: "restock:<alertId>", "repurchase:<reservationId>".
+  dedupeKey String?  @unique
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([kind, createdAt])
+}
+
+/// Historial de cotizaciones: cada cambio de tasa queda con su fecha, así las
+/// reservas viejas conservan su precio (ya congelado en ReservationItem).
+model CurrencyRateLog {
+  id        String   @id @default(cuid())
+  code      String
+  rate      Float
+  /// JSON completo de las cotizaciones en ese momento.
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([code, createdAt])
+}

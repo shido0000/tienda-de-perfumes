@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mist & Mood">
+  <rect width="64" height="64" rx="14" fill="#6e1f2c"/>
+  <circle cx="32" cy="32" r="17" fill="none" stroke="#c2a15a" stroke-width="1.6" opacity="0.85"/>
+  <path d="M32 18c5.2 4.6 8 8.6 8 12.4A8 8 0 0 1 24 30.4C24 26.6 26.8 22.6 32 18Z" fill="#c2a15a"/>
+  <circle cx="32" cy="42.5" r="2.6" fill="#c2a15a"/>
+</svg>

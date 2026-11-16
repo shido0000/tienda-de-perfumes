@@ -1,0 +1,284 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* nocoder:theme start — "Casa de perfumes": marfil, tinta cálida, borgoña, latón */
+:root {
+  --color-bg: 247 244 238;
+  --color-surface: 255 253 249;
+  --color-ink: 26 23 20;
+  --color-muted: 107 99 90;
+  --color-line: 226 218 208;
+  --color-primary: 110 31 44;
+  --color-on-primary: 255 249 242;
+  --color-accent: 194 161 90;
+  --color-accent-ink: 26 23 20;
+  --color-success: 63 122 78;
+  --color-danger: 163 42 34;
+
+  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-body: "Karla", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-control: 8px;
+  --radius-card: 14px;
+  --radius-theme: 14px;
+
+  --shadow-sm: 0 1px 2px rgb(26 23 20 / 0.06), 0 1px 3px rgb(26 23 20 / 0.05);
+  --shadow-md: 0 30px 60px -38px rgb(26 23 20 / 0.42), 0 4px 14px -6px rgb(26 23 20 / 0.10);
+  --shadow-theme: 0 30px 60px -38px rgb(26 23 20 / 0.42), 0 4px 14px -6px rgb(26 23 20 / 0.10);
+  --shadow-lift: 0 42px 80px -42px rgb(26 23 20 / 0.55), 0 8px 22px -10px rgb(26 23 20 / 0.14);
+
+  --text-display: clamp(2.75rem, 5.4vw + 1rem, 4.75rem);
+  --text-h2: 2.25rem;
+  --text-h3: 1.5rem;
+
+  --ease-theme: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 180ms;
+  --duration-base: 300ms;
+  --duration-slow: 460ms;
+
+  --glass-bg: 255 253 249 / 0.72;
+  --hairline: 26 23 20 / 0.08;
+
+  color-scheme: light;
+}
+
+/* dark (class on <html>) */
+.dark {
+  --color-bg: 17 15 14;
+  --color-surface: 27 24 22;
+  --color-ink: 240 233 224;
+  --color-muted: 173 163 152;
+  --color-line: 51 45 41;
+  --color-primary: 201 138 148;
+  --color-on-primary: 17 15 14;
+  --color-accent: 214 184 122;
+  --color-accent-ink: 17 15 14;
+  --color-success: 113 181 132;
+  --color-danger: 232 126 116;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-md: 0 30px 60px -38px rgb(0 0 0 / 0.9), 0 4px 14px -6px rgb(0 0 0 / 0.55);
+  --shadow-theme: 0 30px 60px -38px rgb(0 0 0 / 0.9), 0 4px 14px -6px rgb(0 0 0 / 0.55);
+  --shadow-lift: 0 46px 90px -46px rgb(0 0 0 / 0.95), 0 10px 26px -12px rgb(0 0 0 / 0.6);
+  --glass-bg: 27 24 22 / 0.7;
+  --hairline: 240 233 224 / 0.1;
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-ink));
+    font-family: var(--font-body);
+    /* trama muy tenue: da profundidad sin competir con el contenido */
+    background-image:
+      radial-gradient(60rem 40rem at 12% -12%, rgb(var(--color-accent) / 0.10), transparent 60%),
+      radial-gradient(48rem 36rem at 100% 0%, rgb(var(--color-primary) / 0.07), transparent 62%);
+    background-repeat: no-repeat;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-primary));
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: rgb(var(--color-primary) / 0.18);
+    color: rgb(var(--color-ink));
+  }
+  /* scrollbar discreta que respeta el tema */
+  * {
+    scrollbar-color: rgb(var(--color-line)) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+/* --- Additive helpers (theme tokens only, no raw hex) ------------------- */
+em, .accent-italic { font-style: normal; color: rgb(var(--color-primary)); font-weight: 600; }
+
+/* "sello de la casa": etiqueta fina con un punto latón, firma de la tienda */
+.brand-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.36rem 0.9rem;
+  border: 1px solid rgb(var(--color-line));
+  border-radius: 999px;
+  background: rgb(var(--color-surface));
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--color-muted));
+}
+.brand-tag::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgb(var(--color-accent));
+}
+
+/* superficie de cristal para barras fijas y paneles flotantes */
+.glass {
+  background-color: rgb(var(--glass-bg));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border-bottom: 1px solid rgb(var(--hairline));
+}
+.glass-panel {
+  background-color: rgb(var(--glass-bg));
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(var(--hairline));
+}
+
+/* línea fina de latón como separador de sección */
+.brass-rule {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--color-accent) / 0.65),
+    rgb(var(--color-primary) / 0.4),
+    transparent
+  );
+}
+
+/* profundidad de tarjeta, con elevación al pasar el mouse */
+.card-depth {
+  box-shadow: var(--shadow-md);
+  transition: transform var(--duration-base) var(--ease-out-soft),
+              box-shadow var(--duration-base) var(--ease-out-soft);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* zoom suave de la imagen del producto */
+.media-zoom img { transition: transform var(--duration-slow) var(--ease-out-soft); }
+.card-hover:hover .media-zoom img { transform: scale(1.06); }
+
+/* botón principal con un brillo que cruza al pasar el mouse */
+.btn-sheen { position: relative; overflow: hidden; isolation: isolate; }
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.28) 50%, transparent 70%);
+  transition: transform var(--duration-slow) var(--ease-out-soft);
+  pointer-events: none;
+}
+.btn-sheen:hover::after { transform: translateX(120%); }
+
+/* reveal al hacer scroll — la clase base queda invisible sólo si hay JS+IO */
+.reveal-init { opacity: 0; transform: translateY(18px); }
+.reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--duration-slow) var(--ease-out-soft),
+              transform var(--duration-slow) var(--ease-out-soft);
+}
+
+/* gentle reveal (legado) */
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal { animation: reveal var(--duration-base) var(--ease-theme) both; }
+
+/* halo suave detrás de la foto destacada */
+@keyframes halo {
+  0%   { opacity: 0.35; transform: scale(0.97); }
+  50%  { opacity: 0.6;  transform: scale(1.02); }
+  100% { opacity: 0.45; transform: scale(1); }
+}
+.halo {
+  background: radial-gradient(circle at 50% 45%, rgb(var(--color-accent) / 0.55) 0%, rgb(var(--color-accent) / 0.16) 42%, transparent 72%);
+  filter: blur(40px);
+  animation: halo 10s var(--ease-theme) forwards;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.float-slow { animation: float-slow 9s var(--ease-theme) infinite; }
+
+@keyframes shimmer {
+  0%   { background-position: -220% 0; }
+  100% { background-position: 220% 0; }
+}
+.skeleton {
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--color-line) / 0.35) 25%,
+    rgb(var(--color-line) / 0.7) 37%,
+    rgb(var(--color-line) / 0.35) 63%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.hairline { border-left: 1px solid rgb(var(--color-line)); }
+
+/* Barra de progreso de navegación (ver components/NavigationProgress.tsx). */
+@keyframes nav-progress {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(120%); }
+  100% { transform: translateX(320%); }
+}
+.nav-progress-bar {
+  animation: nav-progress 1.4s var(--ease-theme) infinite;
+}
+
+/* Impresión de reportes: fondo blanco, sin navegación ni controles. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+  header, footer, nav, .print\:hidden { display: none !important; }
+  html, body { background: #fff !important; color: #000 !important; }
+  main { padding: 0 !important; max-width: none !important; }
+  .rounded-card, .rounded-control, .rounded-full { border-radius: 0 !important; }
+  .shadow-sm, .shadow-lg, .shadow-theme { box-shadow: none !important; }
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #d7d7d7 !important;
+    background: #fff !important;
+    padding: 10pt !important;
+    margin-bottom: 10pt !important;
+  }
+  section * { color: #111 !important; background-color: transparent !important; }
+  /* Los gráficos y barras del dashboard pierden el color decorativo pero siguen legibles. */
+  section [style*="background"] { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border-bottom: 1px solid #e2e2e2 !important; padding: 4pt 6pt !important; }
+  a[href]::after { content: ""; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-init { opacity: 1; transform: none; }
+}
+/* nocoder:theme end */

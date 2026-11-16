@@ -1,0 +1,37 @@
+# Lo que NO se sube a Vercel (Vercel instala y compila por su cuenta).
+#
+# Sin este archivo el deploy intenta empaquetar node_modules (617 MB) y .next
+# (304 MB) en cada publicación: la subida tarda demasiado y el navegador corta
+# la conexión con un "Failed to fetch".
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Caché de TypeScript
+*.tsbuildinfo
+
+# Variables de entorno locales (el deploy inyecta las suyas)
+.env
+.env.local
+.env.*.local
+
+# Repositorio y archivos internos del agente
+.git/
+.nocoder/
+
+# Pruebas y utilidades de desarrollo que no hacen falta en producción
+scripts/regression.mjs
+scripts/smoke.sh
+scripts/cleanup-test-alerts.ts
+scripts/fix-hero-subtitle.ts
+scripts/fix-tagline.ts
+scripts/retarget.ts
+
+# Basura
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

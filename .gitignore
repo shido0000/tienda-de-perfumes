@@ -1,0 +1,32 @@
+# Dependencias (Vercel/el deploy las instala con `npm install`)
+node_modules/
+
+# Compilados de Next.js
+.next/
+out/
+build/
+dist/
+
+# Caché de TypeScript
+*.tsbuildinfo
+
+# Variables de entorno: NUNCA se publican (el deploy las inyecta)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Basura del sistema y del editor
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+
+# Archivos internos del agente (no forman parte de la app)
+.nocoder/
+
+# Salidas temporales de scripts
+/tmp/
+*.pdf
