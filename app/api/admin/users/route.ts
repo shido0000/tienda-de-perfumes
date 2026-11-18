@@ -69,7 +69,10 @@ export async function PATCH(req: Request) {
   }
   const { id, role } = parsed.data;
 
-  const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, role: true, managerCode: true },
+  });
   if (!target) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
   // Nunca dejar la tienda sin administradores.
@@ -85,8 +88,20 @@ export async function PATCH(req: Request) {
 
   const user = await prisma.user.update({
     where: { id },
-    data: { role },
-    select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
+    data: {
+      role,
+      // Al convertir un gestor en cliente se apaga su enlace: sus precios
+      // dejan de llevar recargo y de generar comisiones.
+      ...(target.managerCode && role === "CLIENT" ? { managerActive: false } : {}),
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+    },
   });
   return NextResponse.json({ user });
 }

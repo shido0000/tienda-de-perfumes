@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
+import { getRefManager, withManagerPrice } from "@/lib/manager";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +24,21 @@ export async function GET() {
 
   // Drop rows whose product was deleted or hidden by the admin.
   const live = items.filter((i) => i.product && i.product.visible);
+  const manager = await getRefManager().catch(() => null);
   return NextResponse.json({
     items: live.map((i) => ({
       productId: i.productId,
       quantity: Math.min(i.quantity, capFor(i.product.stock)),
-      product: { ...i.product, costUsd: undefined },
+      product: withManagerPrice(
+        {
+          ...i.product,
+          price: Number(i.product.price),
+          compareAtPrice:
+            i.product.compareAtPrice === null ? null : Number(i.product.compareAtPrice),
+          costUsd: undefined,
+        },
+        manager,
+      ),
     })),
   });
 }

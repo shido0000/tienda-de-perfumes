@@ -215,6 +215,36 @@ Otras mejoras:
   Las reservas ya creadas conservan su precio: mover la tasa hoy no cambia el
   precio de una reserva de ayer.
 
+## Gestores (revendedores con enlace propio)
+
+Un gestor es una persona que comparte un enlace de la tienda y gana una comisión
+por cada venta que entra por él.
+
+**Cómo se crea:** en *Administración → Gestores → Nuevo gestor*. Se escribe el
+correo, se elige cómo gana (**un % sobre el precio** o **una cantidad fija por
+unidad**) y se guarda. El sistema devuelve un enlace del tipo
+`https://tu-tienda/r/CODIGO`. También se puede convertir en gestor a un cliente
+que ya existe desde *Usuarios → «Hacer gestor»*.
+
+**Qué ve el cliente:** quien entra por ese enlace ve todos los precios con la
+ganancia del gestor sumada. Ejemplo: un perfume de 5000 CUP con un gestor del
+10 % se muestra a 5500 CUP. El recargo lo aplica el servidor desde la cookie que
+deja el enlace, nunca el navegador, y la reserva se guarda con ese precio.
+
+**Qué ve el administrador:** la pestaña *Gestores* muestra, por gestor:
+- **Ganado**: suma de comisiones de sus ventas no canceladas.
+- **Pagado**: lo que ya se le liquidó.
+- **Pendiente**: lo que aún se le debe (ganado − pagado).
+
+En el detalle de cada gestor están sus ventas (con la comisión de cada una y si
+ya está *Pagada* o *Por pagar*), su enlace copiable, el control para cambiar la
+ganancia o apagar el enlace, y el botón **Registrar pago**: al registrar un pago
+se marcan como liquidadas las comisiones más antiguas hasta cubrir el importe.
+
+**Importante:** la tasa del gestor se copia a cada reserva en el momento de la
+venta. Si después se cambia el %, las ventas ya cerradas conservan la comisión
+con la que se cerraron.
+
 ## Avisos automáticos (envío solo, sin tocar nada)
 
 Los dos avisos de venta ya **se envían solos**, no hace falta que nadie abra

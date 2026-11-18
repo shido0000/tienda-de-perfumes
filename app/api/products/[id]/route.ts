@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/session";
 import { normalizeProduct } from "@/lib/normalize-product";
 import { withPublicImages } from "@/lib/image-url";
 import { handleRestock } from "@/lib/restock";
+import { getRefManager, withManagerPrice } from "@/lib/manager";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,11 @@ export async function GET(
   const { costUsd: _cost, ...rest } = product;
   // Números, no Decimal serializado: las tarjetas hacen aritmética con price.
   // Fotos por /api/img (con caché) en vez de base64 inline.
-  return NextResponse.json({ product: normalizeProduct(withPublicImages(rest)) });
+  // Con enlace de gestor, el precio del detalle también lleva su recargo.
+  const manager = await getRefManager().catch(() => null);
+  return NextResponse.json({
+    product: withManagerPrice(normalizeProduct(withPublicImages(rest)), manager),
+  });
 }
 
 export async function PATCH(

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ensureReady } from "@/lib/bootstrap";
 import { normalizeCombo } from "@/lib/normalize-product";
+import { getRefManager, markedPrice } from "@/lib/manager";
 import { ComboCard } from "@/components/ComboCard";
 import { EmptyState } from "@/components/EmptyState";
 import type { ComboDTO } from "@/lib/types";
@@ -13,6 +14,7 @@ export const metadata = {
 
 export default async function OffersPage() {
   await ensureReady();
+  const manager = await getRefManager().catch(() => null);
 
   const rows = await prisma.combo
     .findMany({
@@ -36,6 +38,7 @@ export default async function OffersPage() {
       }, Number.POSITIVE_INFINITY);
       return {
         ...normalizeCombo(c),
+        price: markedPrice(Number(normalizeCombo(c).price), manager),
         items: c.items.map((i) => ({
           productId: i.productId,
           name: i.product.name,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSettings } from "@/lib/settings";
+import { manifestIcons } from "@/lib/pwa-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -13,23 +14,9 @@ export async function GET() {
   const s = await getSettings();
   const icon = s.logoUrl ?? null;
 
-  // Los íconos PNG 192/512 SIEMPRE van: sin ellos Chrome no ofrece instalar la
-  // app de verdad (solo crea un "acceso directo" que se abre dentro del
-  // navegador). Si el dueño subió un logo, se agrega ADEMÁS como primer ícono.
-  const baseIcons = [
-    { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-    { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-    {
-      src: "/icons/icon-maskable-512.png",
-      sizes: "512x512",
-      type: "image/png",
-      purpose: "maskable",
-    },
-  ];
-
-  const icons = icon && /\.(png|jpe?g|webp)$/i.test(icon)
-    ? [{ src: icon, sizes: "512x512", type: "image/png", purpose: "any" }, ...baseIcons]
-    : baseIcons;
+  // El logo que el dueño subió en el panel es el ícono de la app instalada:
+  // va primero en el manifest. Si no hay logo, quedan los íconos por defecto.
+  const icons = manifestIcons(icon);
 
   const manifest = {
     id: "/",

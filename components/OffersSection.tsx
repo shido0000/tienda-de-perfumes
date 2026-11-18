@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { normalizeCombo } from "@/lib/normalize-product";
 import { DEFAULT_SITE_TEXTS, type SiteTexts } from "@/lib/site-texts";
 import { ComboCard } from "./ComboCard";
+import { getRefManager, markedPrice } from "@/lib/manager";
 import type { ComboDTO } from "@/lib/types";
 
 /**
@@ -11,6 +12,7 @@ import type { ComboDTO } from "@/lib/types";
  */
 export async function OffersSection({ texts }: { texts?: Partial<SiteTexts> } = {}) {
   let combos: ComboDTO[] = [];
+  const manager = await getRefManager().catch(() => null);
   try {
     const rows = await prisma.combo.findMany({
       where: { visible: true },
@@ -32,6 +34,8 @@ export async function OffersSection({ texts }: { texts?: Partial<SiteTexts> } = 
         }, Number.POSITIVE_INFINITY);
         return {
           ...normalizeCombo(c),
+          // Con enlace de gestor, el combo también se muestra con su recargo.
+          price: markedPrice(Number(normalizeCombo(c).price), manager),
           items: c.items.map((i) => ({
             productId: i.productId,
             name: i.product.name,

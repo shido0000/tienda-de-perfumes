@@ -16,9 +16,12 @@ function parseRange(value: string | null): Range {
 }
 
 /**
- * Estadísticas del panel. Los importes de las tarjetas se convierten a la moneda
- * que la tienda muestra; el gráfico de ventas se expresa SIEMPRE en USD, que es
- * la referencia con la que se comparan los costos de inventario.
+ * Estadísticas del panel.
+ *
+ * TODOS los importes (ingresos, ticket medio, inventario, margen, gráfico de
+ * ventas y ranking por categoría) se expresan en la moneda que el dueño elige
+ * para el panel — `displayCurrency`, la misma de la tienda. Los campos *Usd se
+ * mantienen porque el reporte impreso/PDF los usa como referencia interna.
  */
 export async function GET(request: Request) {
   const admin = await requireAdmin();
@@ -66,12 +69,15 @@ export async function GET(request: Request) {
     convert(amount, from, "USD", settings.currencies);
   const toDisplay = (amount: number, from: string) =>
     convert(amount, from, display, settings.currencies);
+  /** Un importe ya en USD (como el costo de inventario) a la moneda del panel. */
+  const usdToDisplay = (amount: number) => convert(amount, "USD", display, settings.currencies);
 
   const paid = reservations.filter((r) => r.status !== "CANCELLED");
 
   const revenue = paid.reduce((s, r) => s + toDisplay(Number(r.total), r.currency), 0);
   const revenueUsd = paid.reduce((s, r) => s + toUsd(Number(r.total), r.currency), 0);
   const avgTicket = paid.length ? revenueUsd / paid.length : 0;
+  const avgTicketDisplay = paid.length ? revenue / paid.length : 0;
 
   const byStatus: Record<string, number> = {};
   for (const r of reservations) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
@@ -83,14 +89,14 @@ export async function GET(request: Request) {
     byPayment[r.paymentMethod] = (byPayment[r.paymentMethod] ?? 0) + 1;
   }
 
-  // Ventas por día en USD, para la ventana pedida (7/14/30/90 días).
+  // Ventas por día en la moneda del panel, para la ventana pedida (7/14/30/90).
   const days: { date: string; total: number; count: number }[] = [];
   const bucket = new Map<string, { total: number; count: number }>();
   for (const r of paid) {
     const key = r.createdAt.toISOString().slice(0, 10);
     const prev = bucket.get(key) ?? { total: 0, count: 0 };
     bucket.set(key, {
-      total: prev.total + toUsd(Number(r.total), r.currency),
+      total: prev.total + toDisplay(Number(r.total), r.currency),
       count: prev.count + 1,
     });
   }
@@ -106,7 +112,7 @@ export async function GET(request: Request) {
   // Ranking de productos, marcas y categorías vendidas.
   const soldMap = new Map<string, number>();
   const brandMap = new Map<string, number>();
-  const catMap = new Map<string, { quantity: number; revenueUsd: number }>();
+  const catMap = new Map<string, { quantity: number; revenueUsd: number; revenueDisplay: number }>();
   const productBrand = new Map(products.map((p) => [p.name, p.brand]));
   const productCat = new Map(products.map((p) => [p.name, p.category]));
   for (const r of paid) {
@@ -115,11 +121,14 @@ export async function GET(request: Request) {
       const brand = productBrand.get(it.name);
       if (brand) brandMap.set(brand, (brandMap.get(brand) ?? 0) + it.quantity);
       const cat = productCat.get(it.name) ?? "Sin categoría";
-      const prev = catMap.get(cat) ?? { quantity: 0, revenueUsd: 0 };
+      const prev = catMap.get(cat) ?? { quantity: 0, revenueUsd: 0, revenueDisplay: 0 };
       catMap.set(cat, {
         quantity: prev.quantity + it.quantity,
         revenueUsd:
           prev.revenueUsd + toUsd(Number(it.priceConverted), it.orderCurrency) * it.quantity,
+        revenueDisplay:
+          prev.revenueDisplay +
+          toDisplay(Number(it.priceConverted), it.orderCurrency) * it.quantity,
       });
     }
   }
@@ -135,8 +144,13 @@ export async function GET(request: Request) {
     .slice(0, 5);
 
   const topCategories = [...catMap.entries()]
-    .map(([name, v]) => ({ name, quantity: v.quantity, revenueUsd: Math.round(v.revenueUsd * 100) / 100 }))
-    .sort((a, b) => b.revenueUsd - a.revenueUsd)
+    .map(([name, v]) => ({
+      name,
+      quantity: v.quantity,
+      revenueUsd: Math.round(v.revenueUsd * 100) / 100,
+      revenueDisplay: Math.round(v.revenueDisplay * 100) / 100,
+    }))
+    .sort((a, b) => b.revenueDisplay - a.revenueDisplay)
     .slice(0, 5);
 
   const lowStock = products
@@ -144,7 +158,7 @@ export async function GET(request: Request) {
     .map((p) => ({ id: p.id, name: p.name, stock: p.stock ?? 0 }))
     .sort((a, b) => a.stock - b.stock);
 
-  // Valor del inventario a precio de venta y al costo, ambos en USD.
+  // Valor del inventario a precio de venta y al costo, en la moneda del panel.
   const inventoryCostUsd = products.reduce(
     (s, p) => s + Number(p.costUsd ?? 0) * (p.stock ?? 0),
     0,
@@ -153,6 +167,8 @@ export async function GET(request: Request) {
     (s, p) => s + (p.stock ? toUsd(Number(p.price), p.currency) * p.stock : 0),
     0,
   );
+  const inventoryCost = usdToDisplay(inventoryCostUsd);
+  const inventoryRetail = usdToDisplay(inventoryRetailUsd);
 
   const since30 = new Date(today);
   since30.setDate(today.getDate() - 30);
@@ -160,6 +176,7 @@ export async function GET(request: Request) {
 
   const rangeRevenueUsd = days.reduce((s, d) => s + d.total, 0);
   const rangeCount = days.reduce((s, d) => s + d.count, 0);
+  const rangeRevenue = rangeRevenueUsd;
 
   return NextResponse.json({
     currency: display,
@@ -168,6 +185,7 @@ export async function GET(request: Request) {
     cards: {
       revenue,
       revenueUsd,
+      avgTicket: Math.round(avgTicketDisplay * 100) / 100,
       avgTicketUsd: Math.round(avgTicket * 100) / 100,
       reservations: reservations.length,
       pending: byStatus.PENDING ?? 0,
@@ -183,6 +201,9 @@ export async function GET(request: Request) {
       lowStock: lowStock.length,
       inventoryCostUsd: Math.round(inventoryCostUsd * 100) / 100,
       inventoryRetailUsd: Math.round(inventoryRetailUsd * 100) / 100,
+      inventoryCost: Math.round(inventoryCost * 100) / 100,
+      inventoryRetail: Math.round(inventoryRetail * 100) / 100,
+      rangeRevenue: Math.round(rangeRevenue * 100) / 100,
       rangeRevenueUsd: Math.round(rangeRevenueUsd * 100) / 100,
       rangeCount,
     },

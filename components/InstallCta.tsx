@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { DeviceMobile, DownloadSimple, ArrowClockwise, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { applyUpdate, promptInstall, usePwa } from "@/lib/pwa";
+import { useSiteTexts } from "@/lib/use-site-texts";
 
 /**
  * Franja "Llevate la tienda en el teléfono" de la portada.
@@ -16,6 +17,7 @@ import { applyUpdate, promptInstall, usePwa } from "@/lib/pwa";
  *  - nada si la tienda ya está abierta como aplicación instalada.
  */
 export function InstallCta() {
+  const t = useSiteTexts();
   const { canInstall, installed, updateReady } = usePwa();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -55,10 +57,9 @@ export function InstallCta() {
             <DeviceMobile size={20} weight="duotone" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="font-display text-lg text-ink">Llevá Mist &amp; Mood en tu teléfono</h2>
+            <h2 className="font-display text-lg text-ink">{t.installTitle}</h2>
             <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted">
-              Se abre como una app: ícono en la pantalla de inicio, a pantalla completa y con el
-              carrito y tus reservas a mano, incluso con mala conexión.
+              {t.installIntro}
             </p>
           </div>
         </div>
@@ -77,7 +78,7 @@ export function InstallCta() {
             ) : (
               <DownloadSimple size={17} weight="bold" aria-hidden="true" />
             )}
-            {updateReady ? "Actualizar app" : done ? "Instalada" : "Instalar app"}
+            {updateReady ? t.installUpdate : done ? t.installInstalled : t.installButton}
           </button>
           {!canInstall && !updateReady && (
             <button
@@ -86,7 +87,7 @@ export function InstallCta() {
               aria-expanded={help}
               className="text-xs text-muted underline decoration-line underline-offset-4 transition-colors hover:text-primary"
             >
-              ¿Cómo se instala?
+              {t.installHelpToggle}
             </button>
           )}
         </div>
@@ -95,17 +96,9 @@ export function InstallCta() {
       {help && (
         <div className="mt-3 rounded-card border border-line bg-bg p-4 text-sm leading-relaxed text-muted">
           {isIos ? (
-            <p>
-              En el iPhone o iPad: abrí esta página en <strong className="text-ink">Safari</strong>,
-              tocá el botón <strong className="text-ink">Compartir</strong> (el cuadro con la flecha
-              hacia arriba) y elegí <strong className="text-ink">Añadir a pantalla de inicio</strong>.
-            </p>
+            <p>{t.installHelpIos}</p>
           ) : (
-            <p>
-              En Android con <strong className="text-ink">Chrome</strong>: tocá el menú de tres puntos
-              arriba a la derecha y elegí <strong className="text-ink">Instalar aplicación</strong>.
-              En el ordenador, buscá el ícono de instalar en la barra de direcciones.
-            </p>
+            <p>{t.installHelpAndroid}</p>
           )}
         </div>
       )}

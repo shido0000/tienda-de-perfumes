@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { normalizeCombo } from "@/lib/normalize-product";
+import { getRefManager, markedPrice } from "@/lib/manager";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
  * "incluye 2× Ámbar Nº7" y para comprobar el stock disponible.
  */
 export async function GET() {
+  const manager = await getRefManager().catch(() => null);
   const combos = await prisma.combo.findMany({
     where: { visible: true },
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
@@ -37,6 +39,7 @@ export async function GET() {
 
       return {
         ...normalizeCombo(c),
+        price: markedPrice(Number(normalizeCombo(c).price), manager),
         items: c.items.map((i) => ({
           productId: i.productId,
           name: i.product.name,

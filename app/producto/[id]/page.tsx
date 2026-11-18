@@ -7,6 +7,7 @@ import { getSiteUrl } from "@/lib/site-url";
 import { ProductDetail } from "@/components/ProductDetail";
 import { normalizeFaqs } from "@/lib/normalize-product";
 import { publicImages } from "@/lib/image-url";
+import { getRefManager, withManagerPrice } from "@/lib/manager";
 
 /** Convierte la galería (posiblemente base64) a URLs absolutas y cacheables. */
 function absoluteImages(productId: string, images: string[] | null | undefined, base?: string): string[] {
@@ -157,6 +158,11 @@ export default async function ProductPage({ params }: { params: { id: string } }
       }
     : null;
 
+  // Si el visitante llegó por el enlace de un gestor, ve (y paga) el precio con
+  // recargo. El JSON-LD conserva el precio real para Google.
+  const manager = await getRefManager().catch(() => null);
+  const viewPrice = (p: typeof product) => withManagerPrice(toDTO(p), manager);
+
   return (
     <>
       <script
@@ -170,8 +176,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
         />
       )}
       <ProductDetail
-        product={toDTO(product)}
-        suggestions={suggestions.map(toDTO)}
+        product={viewPrice(product)}
+        suggestions={suggestions.map(viewPrice)}
         initialSaved={saved}
         signedIn={Boolean(user)}
       />

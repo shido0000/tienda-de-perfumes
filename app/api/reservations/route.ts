@@ -6,6 +6,7 @@ import { convert, round2, findCurrency, BASE_CURRENCY, formatMoney } from "@/lib
 import { haversineKm, quoteShipping } from "@/lib/shipping";
 import { notifyReservation } from "@/lib/whatsapp";
 import { notifyAdmins } from "@/lib/push";
+import { getRefManager, markedPrice } from "@/lib/manager";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,9 @@ export async function POST(req: Request) {
   }
   const body = parsed.data;
   const settings = await getSettings();
+  // El gestor se toma de la COOKIE, nunca del cuerpo: es el enlace por el que
+  // el cliente entró, y el recargo debe aplicarlo el servidor.
+  const manager = await getRefManager().catch(() => null);
 
   // La moneda del pedido la fija la tienda (Administración → Ajustes), nunca el
   // navegador: así el precio que ve el cliente es el que se guarda.
@@ -126,6 +130,8 @@ export async function POST(req: Request) {
     priceOriginal: number;
     currencyOriginal: string;
     priceConverted: number;
+    /** Recargo por unidad (moneda del pedido) que corresponde al gestor. */
+    managerMarkupConverted: number;
     orderCurrency: string;
     quantity: number;
     stock: number | null;
@@ -133,9 +139,18 @@ export async function POST(req: Request) {
 
   const lines: OrderLine[] = directItems.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
-    const priceOriginal = Number(product.price);
+    // Si el cliente llegó por el enlace de un gestor, paga el precio con
+    // recargo y ese recargo es la ganancia del gestor.
+    const baseOriginal = Number(product.price);
+    const priceOriginal = markedPrice(baseOriginal, manager);
     const priceConverted = convert(
       priceOriginal,
+      product.currency,
+      orderCurrency.code,
+      currencies,
+    );
+    const markupConverted = convert(
+      round2(priceOriginal - baseOriginal),
       product.currency,
       orderCurrency.code,
       currencies,
@@ -148,16 +163,19 @@ export async function POST(req: Request) {
       priceOriginal,
       currencyOriginal: product.currency,
       priceConverted,
+      managerMarkupConverted: markupConverted,
       orderCurrency: orderCurrency.code,
       quantity: item.quantity,
       stock: product.stock,
     };
   });
 
-  // El combo se cobra como una sola línea al precio de la oferta.
+  // El combo se cobra como una sola línea al precio de la oferta (también con
+  // el recargo del gestor, si el visitante vino por su enlace).
   for (const item of comboRequests) {
     const combo = comboById.get(comboIdOf(item.productId))!;
-    const priceOriginal = Number(combo.price);
+    const baseCombo = Number(combo.price);
+    const priceOriginal = markedPrice(baseCombo, manager);
     lines.push({
       productId: null,
       comboId: combo.id,
@@ -167,6 +185,12 @@ export async function POST(req: Request) {
       currencyOriginal: combo.currency,
       priceConverted: convert(
         priceOriginal,
+        combo.currency,
+        orderCurrency.code,
+        currencies,
+      ),
+      managerMarkupConverted: convert(
+        round2(priceOriginal - baseCombo),
         combo.currency,
         orderCurrency.code,
         currencies,
@@ -217,6 +241,14 @@ export async function POST(req: Request) {
   const subtotal = round2(
     lines.reduce((sum, l) => sum + l.priceConverted * l.quantity, 0),
   );
+
+  // Recargo total cobrado por el enlace del gestor y su comisión (misma cifra:
+  // lo que el cliente paga de más es lo que gana el gestor). Se guarda en la
+  // moneda del pedido, que es la que ve el dueño en el panel.
+  const managerSurcharge = round2(
+    lines.reduce((sum, l) => sum + l.managerMarkupConverted * l.quantity, 0),
+  );
+  const managerCommission = manager ? managerSurcharge : 0;
 
   // ---- Envío -------------------------------------------------------------
   // El envío a domicilio se cobra SIEMPRE en CUP (moneda base de la tienda).
@@ -303,6 +335,11 @@ export async function POST(req: Request) {
         transferProofUrl: proof || null,
         status: "PENDING",
         customerNote: body.customerNote?.trim() || null,
+        managerId: manager?.id ?? null,
+        managerRateType: manager?.rateType ?? null,
+        managerRateValue: manager?.rateValue ?? null,
+        managerSurcharge,
+        managerCommission,
         items: {
           create: lines.map((l) => ({
             productId: l.productId,

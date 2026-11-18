@@ -51,6 +51,12 @@ export const DEFAULT_SITE_TEXTS = {
   paymentsTitle: "Formas de pago",
   paymentsIntro:
     "No cobramos online. Al confirmar la reserva, la tienda recibe tu pedido y te escribe para arreglar el pago y la entrega.",
+  paymentsTransferTitle: "Transferencia",
+  paymentsTransferIntro: "Transferí a estos datos y mandanos el comprobante.",
+  paymentsCashTitle: "Efectivo",
+  paymentsCashIntro:
+    "Pagás cuando retirás en tienda o al recibir el envío. Coordinamos por WhatsApp.",
+  paymentsWhatsappCta: "Coordinar por WhatsApp",
   homeLegalNote:
     "Reservás online y la tienda confirma por WhatsApp. Los textos legales son una base editable: hacelos revisar por un abogado antes de publicar.",
   homeLegalLink: "Leer términos y condiciones",
@@ -213,7 +219,11 @@ export const DEFAULT_SITE_TEXTS = {
   notFoundBody: "El enlace puede estar viejo o la página se movió. Volvé al catálogo.",
   notFoundCta: "Ir a la portada",
   offlineTitle: "Sin conexión",
-  offlineBody: "Estás sin internet. Cuando vuelvas a conectarte, la tienda carga sola.",
+  offlineEyebrow: "Sin conexión",
+  offlineHeadline: "No pudimos cargar la página",
+  offlineBody:
+    "Parece que se cortó internet. Tus productos y reservas siguen guardados: cuando vuelvas a tener señal, recargá y todo aparece igual.",
+  offlineCta: "Reintentar",
 
   // ---- Resto de páginas: cuentas, legales, instalación, chat -----------
   heroImageAlt: "Perfume destacado de la tienda",
@@ -252,10 +262,17 @@ export const DEFAULT_SITE_TEXTS = {
   wishlistRemove: "Quitar de la lista",
   legalBackHome: "Volver a la portada",
   legalUpdatedLabel: "Última actualización",
-  installTitle: "Instalá la tienda en tu teléfono",
-  installIntro: "Accedé más rápido y recibí los avisos de tus reservas.",
-  installButton: "Instalar",
-  installInstalled: "Ya está instalada",
+  installTitle: "Llevá Mist & Mood en tu teléfono",
+  installIntro:
+    "Se abre como una app: ícono en la pantalla de inicio, a pantalla completa y con el carrito y tus reservas a mano, incluso con mala conexión.",
+  installButton: "Instalar app",
+  installInstalled: "Instalada",
+  installUpdate: "Actualizar app",
+  installHelpToggle: "¿Cómo se instala?",
+  installHelpIos:
+    "En el iPhone o iPad: abrí esta página en Safari, tocá el botón Compartir (el cuadro con la flecha hacia arriba) y elegí Añadir a pantalla de inicio.",
+  installHelpAndroid:
+    "En Android con Chrome: tocá el menú de tres puntos arriba a la derecha y elegí Instalar aplicación. En el ordenador, buscá el ícono de instalar en la barra de direcciones.",
   installIosHint: "En iPhone: tocá Compartir y después \"Agregar a inicio\".",
   installDismiss: "Ahora no",
   chatTitle: "Asistente de la tienda",
@@ -355,6 +372,11 @@ export const SITE_TEXT_FIELDS: SiteTextField[] = [
   F("reviewsTitle", "Opiniones · título", HOME),
   F("paymentsTitle", "Formas de pago · título", HOME),
   F("paymentsIntro", "Formas de pago · texto", HOME, true),
+  F("paymentsTransferTitle", "Formas de pago · título 'Transferencia'", HOME),
+  F("paymentsTransferIntro", "Formas de pago · texto de transferencia", HOME, true),
+  F("paymentsCashTitle", "Formas de pago · título 'Efectivo'", HOME),
+  F("paymentsCashIntro", "Formas de pago · texto de efectivo", HOME, true),
+  F("paymentsWhatsappCta", "Formas de pago · botón 'Coordinar por WhatsApp'", HOME),
   F("homeLegalNote", "Portada · nota legal del pie", HOME, true),
   F("homeLegalLink", "Portada · enlace a términos", HOME),
 
@@ -489,7 +511,10 @@ export const SITE_TEXT_FIELDS: SiteTextField[] = [
   F("notFoundBody", "Página no encontrada · texto", EXTRA, true),
   F("notFoundCta", "Página no encontrada · botón", EXTRA),
   F("offlineTitle", "Sin conexión · título", EXTRA),
+  F("offlineEyebrow", "Sin conexión · rótulo superior", EXTRA),
+  F("offlineHeadline", "Sin conexión · encabezado", EXTRA),
   F("offlineBody", "Sin conexión · texto", EXTRA, true),
+  F("offlineCta", "Sin conexión · botón reintentar", EXTRA),
   F("heroImageAlt", "Portada · texto alternativo de la foto", HOME),
   F("heroCartCta", "Portada · botón 'revisar carrito'", HOME),
   F("heroPickupLabel", "Portada · rótulo retiro", HOME),
@@ -529,7 +554,11 @@ export const SITE_TEXT_FIELDS: SiteTextField[] = [
   F("installTitle", "Instalar app · título", EXTRA),
   F("installIntro", "Instalar app · texto", EXTRA, true),
   F("installButton", "Instalar app · botón", EXTRA),
-  F("installInstalled", "Instalar app · ya instalada", EXTRA),
+  F("installInstalled", "Instalar app · botón cuando ya está instalada", EXTRA),
+  F("installUpdate", "Instalar app · botón cuando hay actualización", EXTRA),
+  F("installHelpToggle", "Instalar app · enlace '¿Cómo se instala?'", EXTRA),
+  F("installHelpIos", "Instalar app · ayuda en iPhone", EXTRA, true),
+  F("installHelpAndroid", "Instalar app · ayuda en Android/ordenador", EXTRA, true),
   F("installIosHint", "Instalar app · ayuda en iPhone", EXTRA, true),
   F("installDismiss", "Instalar app · 'ahora no'", EXTRA),
   F("chatTitle", "Chat · título", EXTRA),

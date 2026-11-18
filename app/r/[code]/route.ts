@@ -1,0 +1,30 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { REF_COOKIE, REF_COOKIE_MAX_AGE, findManagerByCode } from "@/lib/manager";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Enlace personal de un gestor: /r/CODIGO
+ *
+ * Guarda el código en la cookie del visitante y lo manda a la tienda. Desde
+ * ese momento el catálogo le muestra los precios con el recargo del gestor.
+ */
+export async function GET(req: NextRequest, { params }: { params: { code: string } }) {
+  const manager = await findManagerByCode(params.code).catch(() => null);
+  const target = new URL("/", req.url);
+
+  if (!manager) {
+    target.searchParams.set("ref", "invalido");
+    return NextResponse.redirect(target);
+  }
+
+  const res = NextResponse.redirect(target);
+  res.cookies.set(REF_COOKIE, manager.code, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: REF_COOKIE_MAX_AGE,
+  });
+  return res;
+}

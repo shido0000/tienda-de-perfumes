@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import { ProductCard } from "@/components/ProductCard";
 import { EmptyState } from "@/components/EmptyState";
 import { publicImages } from "@/lib/image-url";
+import { getRefManager, withManagerPrice } from "@/lib/manager";
 import type { ProductDTO } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export const metadata = {
 export default async function SalePage() {
   await ensureReady();
   const user = await getCurrentUser();
+  const manager = await getRefManager().catch(() => null);
 
   const rows = await prisma.product
     .findMany({
@@ -45,7 +47,8 @@ export default async function SalePage() {
       images: publicImages(p.id, p.images),
       visible: p.visible,
       stock: p.stock,
-    }));
+    }))
+    .map((p) => withManagerPrice(p, manager));
 
   const wishlistIds = user
     ? await prisma.wishlistItem

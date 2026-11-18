@@ -26,6 +26,7 @@ type Stats = {
   cards: {
     revenue: number;
     revenueUsd: number;
+    avgTicket: number;
     avgTicketUsd: number;
     reservations: number;
     pending: number;
@@ -41,6 +42,9 @@ type Stats = {
     lowStock: number;
     inventoryCostUsd: number;
     inventoryRetailUsd: number;
+    inventoryCost: number;
+    inventoryRetail: number;
+    rangeRevenue: number;
     rangeRevenueUsd: number;
     rangeCount: number;
   };
@@ -50,7 +54,7 @@ type Stats = {
   days: { date: string; total: number; count: number }[];
   topProducts: { name: string; quantity: number }[];
   topBrands: { name: string; quantity: number }[];
-  topCategories: { name: string; revenueUsd: number; quantity: number }[];
+  topCategories: { name: string; revenueUsd: number; revenueDisplay: number; quantity: number }[];
   lowStock: { id: string; name: string; stock: number }[];
 };
 
@@ -72,7 +76,6 @@ const RANGE_LABEL: Record<number, string> = {
   90: "Últimos 90 días",
 };
 
-const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const shortDate = (iso: string) => {
   const [, m, d] = iso.split("-");
   return `${d}/${m}`;
@@ -153,23 +156,24 @@ export function AdminDashboard() {
   }
 
   const { cards } = stats;
-  const marginUsd = cards.inventoryRetailUsd - cards.inventoryCostUsd;
+  const money = (n: number) => formatMoney(n, stats.currency);
+  const margin = cards.inventoryRetail - cards.inventoryCost;
   const maxStatus = Math.max(1, ...Object.values(stats.byStatus));
   const maxProducts = Math.max(1, ...stats.topProducts.map((p) => p.quantity));
   const maxBrands = Math.max(1, ...stats.topBrands.map((p) => p.quantity));
-  const maxCats = Math.max(1, ...stats.topCategories.map((p) => p.revenueUsd));
+  const maxCats = Math.max(1, ...stats.topCategories.map((p) => p.revenueDisplay));
   const deliveryTotal = Object.values(stats.byDelivery).reduce((a, b) => a + b, 0) || 1;
   const paymentTotal = Object.values(stats.byPayment).reduce((a, b) => a + b, 0) || 1;
 
   const kpis = [
-    { icon: CurrencyCircleDollar, label: "Ingresos (sin canceladas)", value: formatMoney(cards.revenue, stats.currency), hint: `≈ ${usd(cards.revenueUsd)}` },
+    { icon: CurrencyCircleDollar, label: "Ingresos (sin canceladas)", value: formatMoney(cards.revenue, stats.currency), hint: `${cards.reservations} reservas` },
     { icon: Receipt, label: "Reservas totales", value: String(cards.reservations), hint: `${cards.pending} pendientes · ${cards.delivered} entregadas` },
-    { icon: TrendUp, label: "Ticket medio", value: usd(cards.avgTicketUsd), hint: "por reserva" },
+    { icon: TrendUp, label: "Ticket medio", value: money(cards.avgTicket), hint: "por reserva" },
     { icon: Users, label: "Clientes", value: String(cards.users), hint: `+${cards.newUsers30} este mes` },
     { icon: Package, label: "Productos", value: String(cards.products), hint: `${cards.hiddenProducts} ocultos · ${cards.categories} categorías` },
     { icon: Warning, label: "Stock bajo", value: String(cards.lowStock), hint: "3 unidades o menos" },
-    { icon: Bank, label: "Inventario al costo", value: usd(cards.inventoryCostUsd), hint: `venta ${usd(cards.inventoryRetailUsd)}` },
-    { icon: Crown, label: "Margen potencial", value: usd(marginUsd), hint: "venta − costo" },
+    { icon: Bank, label: "Inventario al costo", value: money(cards.inventoryCost), hint: `venta ${money(cards.inventoryRetail)}` },
+    { icon: Crown, label: "Margen potencial", value: money(margin), hint: "venta − costo" },
   ];
 
   return (
@@ -226,15 +230,15 @@ export function AdminDashboard() {
         })}
       </div>
 
-      {/* Gráfico principal: ventas por día en USD */}
+      {/* Gráfico principal: ventas por día en la moneda del panel */}
       <section className="rounded-card border border-line bg-surface p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="text-h4">Ventas de los {range} días</h3>
-          <p className="text-xs text-muted">Montos en USD</p>
+          <p className="text-xs text-muted">Montos en {stats.currency}</p>
         </div>
         <p className="mt-1 text-xs text-muted">
-          {usd(cards.rangeRevenueUsd)} en {cards.rangeCount} reserva{cards.rangeCount === 1 ? "" : "s"} · promedio{" "}
-          {usd(cards.rangeCount ? cards.rangeRevenueUsd / cards.rangeCount : 0)} por día con ventas
+          {money(cards.rangeRevenue)} en {cards.rangeCount} reserva{cards.rangeCount === 1 ? "" : "s"} · promedio{" "}
+          {money(cards.rangeCount ? cards.rangeRevenue / cards.rangeCount : 0)} por día con ventas
         </p>
         {/* `items-stretch` + `h-full`: sin altura definida el `height: X%` de la
             barra se resuelve contra `auto` y queda en 0. */}
@@ -244,12 +248,12 @@ export function AdminDashboard() {
             return (
               <div key={d.date} className="group flex h-full flex-1 flex-col items-center justify-end">
                 <span className="mb-1 hidden text-[10px] tabular-nums text-muted group-hover:block">
-                  {usd(d.total)}
+                  {money(d.total)}
                 </span>
                 <div
                   className="w-full rounded-t-sm bg-primary/70 transition-colors group-hover:bg-primary"
                   style={{ height: `${h}%` }}
-                  title={`${longDate(d.date)}: ${usd(d.total)} · ${d.count} reservas`}
+                  title={`${longDate(d.date)}: ${money(d.total)} · ${d.count} reservas`}
                 />
               </div>
             );
@@ -356,7 +360,7 @@ export function AdminDashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-card border border-line bg-surface p-5">
           <h3 className="text-h4">Ingresos por familia olfativa</h3>
-          <p className="mt-1 text-xs text-muted">En USD, según lo vendido.</p>
+          <p className="mt-1 text-xs text-muted">En {stats.currency}, según lo vendido.</p>
           {stats.topCategories.length === 0 ? (
             <p className="mt-3 text-xs text-muted">Sin ventas para agrupar.</p>
           ) : (
@@ -367,7 +371,7 @@ export function AdminDashboard() {
                   label={c.name}
                   value={c.quantity}
                   max={Math.max(1, ...stats.topCategories.map((x) => x.quantity))}
-                  extra={`${usd(c.revenueUsd)} · ${Math.round((c.revenueUsd / maxCats) * 100)}%`}
+                  extra={`${money(c.revenueDisplay)} · ${Math.round((c.revenueDisplay / maxCats) * 100)}%`}
                 />
               ))}
             </ul>

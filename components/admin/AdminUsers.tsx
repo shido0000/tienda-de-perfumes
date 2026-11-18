@@ -6,10 +6,10 @@ import { MagnifyingGlass, ShieldCheck, UserCircle, ArrowClockwise, DownloadSimpl
 import type { AdminUserDTO } from "@/lib/types";
 import { ROLE_LABEL } from "@/lib/types";
 
-export function AdminUsers() {
+export function AdminUsers({ onMakeManager }: { onMakeManager?: (email: string, name: string | null) => void }) {
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
   const [q, setQ] = useState("");
-  const [role, setRole] = useState<"all" | "CLIENT" | "ADMIN">("all");
+  const [role, setRole] = useState<"all" | "CLIENT" | "ADMIN" | "GESTOR">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -106,6 +106,7 @@ export function AdminUsers() {
           <option value="all">Todos los roles</option>
           <option value="CLIENT">Clientes</option>
           <option value="ADMIN">Administradores</option>
+          <option value="GESTOR">Gestores</option>
         </select>
         <button
           onClick={load}
@@ -193,7 +194,14 @@ export function AdminUsers() {
                           ? "Quitar admin"
                           : "Hacer admin"}
                     </button>
-                  </td>
+                    {u.role !== "ADMIN" && u.role !== "GESTOR" && onMakeManager && (
+                      <button
+                        onClick={() => onMakeManager(u.email, u.name)}
+                        className="ml-2 rounded-control border border-line px-3 py-1.5 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
+                      >
+                        Hacer gestor
+                      </button>
+                    )}                  </td>
                 </tr>
               ))}
           </tbody>

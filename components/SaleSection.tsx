@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { publicImageUrl } from "@/lib/image-url";
 import { DEFAULT_SITE_TEXTS, type SiteTexts } from "@/lib/site-texts";
 import { ProductCard } from "./ProductCard";
+import { getRefManager, withManagerPrice } from "@/lib/manager";
 import type { ProductDTO } from "@/lib/types";
 
 /**
@@ -19,6 +20,7 @@ export async function SaleSection({
   texts?: Partial<SiteTexts>;
 }) {
   let products: ProductDTO[] = [];
+  const manager = await getRefManager().catch(() => null);
   try {
     const rows = await prisma.product.findMany({
       where: { visible: true, compareAtPrice: { not: null } },
@@ -44,7 +46,8 @@ export async function SaleSection({
         images: p.images.length ? [publicImageUrl(p.id, 0, p.images[0])] : [],
         visible: p.visible,
         stock: p.stock,
-      }));
+      }))
+      .map((p) => withManagerPrice(p, manager));
   } catch (error) {
     console.error("[rebajas] no se pudieron leer:", (error as Error).message);
     return null;

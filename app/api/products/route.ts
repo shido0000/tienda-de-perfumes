@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { normalizeProduct } from "@/lib/normalize-product";
 import { withPublicImages } from "@/lib/image-url";
+import { getRefManager, withManagerPrice } from "@/lib/manager";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -80,8 +81,9 @@ export async function GET(req: Request) {
   // El precio de costo jamás sale al público: se omite explícitamente.
   // `price`/`compareAtPrice` van como NÚMEROS (Prisma los devuelve Decimal).
   // Las fotos se reescriben a /api/img (con caché) para no enviar base64.
+  const manager = await getRefManager().catch(() => null);
   const safe = products.map(({ costUsd: _cost, ...rest }) =>
-    normalizeProduct(withPublicImages(rest)),
+    withManagerPrice(normalizeProduct(withPublicImages(rest)), manager),
   );
   return NextResponse.json({ products: safe });
 }

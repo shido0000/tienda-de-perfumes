@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChartBar,
   Package,
@@ -19,7 +19,9 @@ import {
   PaperPlaneTilt,
   Coins,
   Star,
+  UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import { AdminProducts } from "./AdminProducts";
 import { AdminAlertBanner } from "./AdminAlertBanner";
 import { AdminReservations } from "./AdminReservations";
@@ -27,6 +29,7 @@ import { AdminSettings } from "./AdminSettings";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminCategories } from "./AdminCategories";
 import { AdminUsers } from "./AdminUsers";
+import { AdminManagers } from "./AdminManagers";
 import { AdminCampaigns } from "./AdminCampaigns";
 import { AdminCampaignTemplates } from "./AdminCampaignTemplates";
 import { AdminContent, type ContentForm } from "./AdminContent";
@@ -54,6 +57,7 @@ type Tab =
   | "reviews"
   | "cashclose"
   | "users"
+  | "managers"
   | "campaigns"
   | "templates"
   | "content"
@@ -73,6 +77,7 @@ const ALL_TABS: Tab[] = [
   "reviews",
   "cashclose",
   "users",
+  "managers",
   "campaigns",
   "templates",
   "content",
@@ -100,6 +105,7 @@ export function AdminPanel({
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  const [managerPrefill, setManagerPrefill] = useState<{ email: string; name: string | null } | null>(null);
 
   // Permite llegar a una pestaña concreta desde un enlace (/admin?tab=alerts).
   // Se usa useSearchParams para que funcione también cuando ya estamos en
@@ -107,18 +113,109 @@ export function AdminPanel({
   // superior abre la pestaña en vez de quedarse en Dashboard.
   const searchParams = useSearchParams();
   const wantedTab = searchParams?.get("tab") ?? null;
-  useEffect(() => {
-    if (wantedTab && ALL_TABS.includes(wantedTab as Tab)) setTab(wantedTab as Tab);
-  }, [wantedTab]);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  // Cada vez que se pide refrescar se incrementa: sirve para volver a pedir los
+  // datos que no llegan por props (categorías) y para que los contadores de las
+  // pestañas no queden viejos después de guardar algo.
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  /**
+   * El panel guarda en una pestaña y muestra los datos en otra: los props de
+   * /admin vienen del servidor y no se vuelven a pedir solos, así que al
+   * cambiar de pestaña (o al volver a la ventana) se refresca el árbol del
+   * servidor. Sin esto se seguía viendo la lista anterior hasta recargar.
+   */
+  const refresh = () => {
+    setRefreshKey((k) => k + 1);
+    startTransition(() => router.refresh());
+  };
+
+  const selectTab = (id: Tab) => {
+    setTab(id);
+    refresh();
+  };
 
   useEffect(() => {
-    fetch("/api/categories")
+    if (wantedTab && ALL_TABS.includes(wantedTab as Tab)) {
+      setTab(wantedTab as Tab);
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantedTab]);
+
+  // Al volver a la pestaña del navegador también se refresca: los cambios
+  // hechos en otra ventana (o por otro administrador) aparecen de inmediato.
+  useEffect(() => {
+    const maybeRefresh = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", maybeRefresh);
+    window.addEventListener("focus", maybeRefresh);
+    return () => {
+      document.removeEventListener("visibilitychange", maybeRefresh);
+      window.removeEventListener("focus", maybeRefresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/categories", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setCategories(d.categories ?? []))
       .catch(() => {});
+  }, [refreshKey]);
+
+  // Todos los formularios del panel guardan con fetch(). En lugar de tocar
+  // cada uno, se vigila aquí: cuando una llamada de escritura (POST/PATCH/
+  // DELETE) termina bien, se refrescan los datos del servidor. Así la pestaña
+  // que se abra después ya muestra lo último que se guardó.
+  useEffect(() => {
+    const original = window.fetch;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => refresh(), 350);
+    };
+    const wrapped: typeof window.fetch = async (input, init) => {
+      const response = await original(input, init);
+      try {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+        const method = (
+          init?.method ??
+          (input instanceof Request ? input.method : "GET")
+        ).toUpperCase();
+        if (response.ok && method !== "GET" && method !== "HEAD" && /\/api\//.test(url)) {
+          scheduleRefresh();
+        }
+      } catch {
+        // Si algo no se puede leer, se ignora: nunca debe romper la petición.
+      }
+      return response;
+    };
+    window.fetch = wrapped;
+    return () => {
+      window.fetch = original;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType; count?: number }[] = [
+  // Los formularios del panel avisan por un evento cuando guardan algo, así el
+  // panel vuelve a pedir los datos sin que haya que recargar la página.
+  useEffect(() => {
+    const onSaved = () => refresh();
+    window.addEventListener("admin:updated", onSaved);
+    return () => window.removeEventListener("admin:updated", onSaved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const tabs: { id: Tab; label: string; icon: Icon; count?: number }[] = [
     { id: "dashboard", label: "Dashboard", icon: ChartBar },
     { id: "products", label: "Productos", icon: Package, count: products.length },
     { id: "combos", label: "Ofertas", icon: Gift, count: combos.length },
@@ -130,6 +227,7 @@ export function AdminPanel({
     { id: "reviews", label: "Opiniones", icon: Star },
     { id: "cashclose", label: "Cierre de caja", icon: Coins },
     { id: "users", label: "Usuarios", icon: Users },
+    { id: "managers", label: "Gestores", icon: UsersThree },
     { id: "campaigns", label: "Campañas", icon: ChatCircleText },
     { id: "templates", label: "Plantillas", icon: PaperPlaneTilt },
     { id: "content", label: "Contenido", icon: PencilSimple },
@@ -141,13 +239,19 @@ export function AdminPanel({
   return (
     <div className="min-w-0">
       <AdminAlertBanner />
-      <div className="-mx-1 flex gap-1 overflow-x-auto border-b border-line px-1 pb-px">
+      <div className="relative -mx-1 flex gap-1 overflow-x-auto border-b border-line px-1 pb-px">
+        {isPending && (
+          <span
+            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin rounded-full border-2 border-line border-t-primary"
+            aria-label="Actualizando datos"
+          />
+        )}
         {tabs.map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => selectTab(t.id)}
               aria-pressed={tab === t.id}
               className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm transition-colors duration-200 ease-theme ${
                 tab === t.id
@@ -195,7 +299,17 @@ export function AdminPanel({
         {tab === "notifications" && <AdminNotifications />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "cashclose" && <AdminCashClose currencies={settings.currencies} />}
-        {tab === "users" && <AdminUsers />}
+        {tab === "users" && (
+          <AdminUsers
+            onMakeManager={(email, name) => {
+              setManagerPrefill({ email, name });
+              setTab("managers");
+            }}
+          />
+        )}
+        {tab === "managers" && (
+          <AdminManagers currencies={settings.currencies} prefill={managerPrefill} />
+        )}
         {tab === "campaigns" && <AdminCampaigns />}
         {tab === "templates" && <AdminCampaignTemplates />}
         {tab === "content" && <AdminContent initial={content} />}

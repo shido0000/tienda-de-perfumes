@@ -15,6 +15,7 @@ import { NavigationProgress } from "@/components/NavigationProgress";
 import { ChatWidget } from "@/components/ChatWidget";
 import { storeJsonLd } from "@/lib/structured-data";
 import { getSiteUrl } from "@/lib/site-url";
+import { appleTouchIcon } from "@/lib/pwa-icons";
 
 /**
  * Metadatos tomados de los ajustes de la tienda: el título, la descripción y
@@ -49,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [{ url: icon }],
-      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+      apple: [{ url: appleTouchIcon(s.logoUrl), sizes: "180x180" }],
     },
     openGraph: {
       type: "website",

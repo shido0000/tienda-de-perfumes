@@ -14,11 +14,12 @@ import { BannerStrip } from "@/components/BannerStrip";
 import { InstallCta } from "@/components/InstallCta";
 import { ReviewsShowcase } from "@/components/ReviewsShowcase";
 import { LaunchWaitlistForm } from "@/components/LaunchWaitlistForm";
+import { getRefManager, withManagerPrice, type ManagerInfo } from "@/lib/manager";
 import type { BannerDTO, ProductDTO } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-async function loadCatalog(): Promise<ProductDTO[]> {
+async function loadCatalog(manager: ManagerInfo | null): Promise<ProductDTO[]> {
   try {
     const products = await prisma.product.findMany({
       where: { visible: true },
@@ -41,7 +42,9 @@ async function loadCatalog(): Promise<ProductDTO[]> {
       images: p.images.length ? [publicImageUrl(p.id, 0, p.images[0])] : [],
       visible: p.visible,
       stock: p.stock,
-    }));
+    }))
+    // Con un enlace de gestor, el catálogo se muestra con su recargo.
+    .map((p) => withManagerPrice(p, manager));
   } catch (error) {
     // Base fría (deploy nuevo, seed sin correr): mostramos estado vacío.
     console.error("[home] no se pudo leer el catálogo:", (error as Error).message);
@@ -52,8 +55,9 @@ async function loadCatalog(): Promise<ProductDTO[]> {
 export default async function HomePage() {
   await ensureReady();
   const now = new Date();
+  const manager = await getRefManager().catch(() => null);
   const [products, settings, user, categoryRows, homeBanners] = await Promise.all([
-    loadCatalog(),
+    loadCatalog(manager),
     getSettings(),
     getCurrentUser(),
     prisma.category
@@ -134,6 +138,11 @@ export default async function HomePage() {
         whatsappDisplay={settings.whatsappDisplay}
         title={t.paymentsTitle}
         intro={t.paymentsIntro}
+        transferTitle={t.paymentsTransferTitle}
+        transferIntro={t.paymentsTransferIntro}
+        cashTitle={t.paymentsCashTitle}
+        cashIntro={t.paymentsCashIntro}
+        whatsappCta={t.paymentsWhatsappCta}
       />
 
       <InstallCta />

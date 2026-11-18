@@ -175,6 +175,7 @@ export const CAMPAIGN_STATUS_LABEL: Record<string, string> = {
 export const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Cliente",
   ADMIN: "Administrador",
+  GESTOR: "Gestor",
 };
 
 export type ReviewDTO = {
