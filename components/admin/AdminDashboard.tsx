@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CurrencyCircleDollar,
   ClipboardText,
@@ -21,6 +21,8 @@ import { formatMoney } from "@/lib/currency";
 type Series = { label: string; value: number; extra?: string };
 type Stats = {
   currency: string;
+  currencies?: { code: string; symbol: string; label: string }[];
+  defaultCurrency?: string;
   range: number;
   ranges: number[];
   cards: {
@@ -107,24 +109,38 @@ export function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState(14);
+  // Moneda en la que el dueño mira las estadísticas. "" = la del panel.
+  const [currency, setCurrency] = useState("");
+  const reqId = useRef(0);
 
-  const load = (days = range) => {
+  const load = (days = range, cur = currency) => {
+    const id = ++reqId.current;
     setLoading(true);
     setError(null);
-    fetch(`/api/admin/stats?days=${days}`)
+    const q = new URLSearchParams({ days: String(days) });
+    if (cur) q.set("currency", cur);
+    fetch(`/api/admin/stats?${q.toString()}`)
       .then(async (r) => {
         if (!r.ok) throw new Error("No pudimos cargar las estadísticas.");
         return r.json();
       })
-      .then(setStats)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        // Descarta respuestas viejas: si el dueño cambia periodo y moneda
+        // seguido, la última elección manda.
+        if (id === reqId.current) setStats(data);
+      })
+      .catch((e) => {
+        if (id === reqId.current) setError(e.message);
+      })
+      .finally(() => {
+        if (id === reqId.current) setLoading(false);
+      });
   };
 
   useEffect(() => {
-    load(range);
+    load(range, currency);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range]);
+  }, [range, currency]);
 
   const maxDay = useMemo(
     () => Math.max(1, ...(stats?.days ?? []).map((d) => d.total)),
@@ -182,10 +198,32 @@ export function AdminDashboard() {
         <div>
           <h2 className="text-h3">Resumen de la tienda</h2>
           <p className="mt-1 text-xs text-muted">
-            Datos en vivo desde la base de datos. Gráfico de ventas en USD.
+            Datos en vivo desde la base de datos. Todos los importes en{" "}
+            <strong className="font-semibold text-ink">{stats.currency}</strong>.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            aria-label="Moneda de las estadísticas"
+            className="rounded-control border border-line bg-surface px-3 py-1.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            {(() => {
+              const list = stats.currencies ?? [];
+              const def = stats.defaultCurrency ?? stats.currency;
+              return [
+                <option key="__default" value="">
+                  Moneda del panel ({def})
+                </option>,
+                ...list.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label} ({c.symbol})
+                  </option>
+                )),
+              ];
+            })()}
+          </select>
           <select
             value={range}
             onChange={(e) => setRange(Number(e.target.value))}
@@ -205,7 +243,9 @@ export function AdminDashboard() {
             <ArrowClockwise size={14} /> Actualizar
           </button>
           <a
-            href={`/api/admin/report/pdf?days=${range}`}
+            href={`/api/admin/report/pdf?days=${range}${
+              currency ? `&currency=${encodeURIComponent(currency)}` : ""
+            }`}
             className="inline-flex items-center gap-1.5 rounded-control bg-primary px-3 py-1.5 text-xs font-medium text-on-primary transition-opacity hover:opacity-90"
           >
             <FilePdf size={14} /> Descargar PDF

@@ -19,10 +19,16 @@ export async function GET() {
   return NextResponse.json({ user: row });
 }
 
+/**
+ * Solo se valida lo que el formulario envía. Nombre y teléfono son opcionales:
+ * un cliente puede guardar únicamente su teléfono, o únicamente cambiar la
+ * contraseña, sin que el formulario le exija rellenar el resto.
+ */
 const schema = z.object({
-  name: z.string().min(1, "Escribí tu nombre").max(80),
+  name: z.string().trim().max(80).optional(),
   phone: z
     .string()
+    .trim()
     .regex(/^[+\d][\d\s\-()]{5,24}$/, "Teléfono inválido: incluí el código de país")
     .optional()
     .or(z.literal("")),
@@ -61,13 +67,24 @@ export async function PATCH(req: Request) {
     passwordHash = await hashPassword(newPassword);
   }
 
+  // Se guarda solo lo que vino en la petición: enviar el teléfono no toca el
+  // nombre, y guardar los datos no obliga a cambiar la contraseña.
+  const data: {
+    name?: string | null;
+    phone?: string | null;
+    passwordHash?: string;
+  } = {};
+  if (name !== undefined) data.name = name.trim() || null;
+  if (phone !== undefined) data.phone = phone.trim() || null;
+  if (passwordHash) data.passwordHash = passwordHash;
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "No hay cambios para guardar." }, { status: 400 });
+  }
+
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: {
-      name: name.trim(),
-      phone: phone?.trim() || null,
-      ...(passwordHash ? { passwordHash } : {}),
-    },
+    data,
     select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
   });
 

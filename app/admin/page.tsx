@@ -78,7 +78,7 @@ export default async function AdminPage() {
     price: Number(p.price),
     compareAtPrice: p.compareAtPrice === null ? null : Number(p.compareAtPrice),
     currency: p.currency,
-    costUsd: p.costUsd === null ? null : Number(p.costUsd),
+    costCup: p.costCup === null ? null : Number(p.costCup),
     images: p.images,
     visible: p.visible,
     stock: p.stock,

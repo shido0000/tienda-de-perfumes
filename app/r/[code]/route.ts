@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { REF_COOKIE, REF_COOKIE_MAX_AGE, findManagerByCode } from "@/lib/manager";
+import { REF_COOKIE, findManagerByCode } from "@/lib/manager";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +19,14 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     return NextResponse.redirect(target);
   }
 
+  // Se redirige con ?ref= para que el middleware fije la cookie en esa misma
+  // petición y no la borre como "entrada normal" en el paso siguiente.
+  target.searchParams.set("ref", manager.code);
   const res = NextResponse.redirect(target);
   res.cookies.set(REF_COOKIE, manager.code, {
     httpOnly: false,
     sameSite: "lax",
     path: "/",
-    maxAge: REF_COOKIE_MAX_AGE,
   });
   return res;
 }

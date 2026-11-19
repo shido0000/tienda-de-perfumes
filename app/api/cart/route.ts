@@ -35,7 +35,7 @@ export async function GET() {
           price: Number(i.product.price),
           compareAtPrice:
             i.product.compareAtPrice === null ? null : Number(i.product.compareAtPrice),
-          costUsd: undefined,
+          costCup: undefined,
         },
         manager,
       ),

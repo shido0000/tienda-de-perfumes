@@ -10,8 +10,8 @@ export type ProductDTO = {
   /** Precio anterior, para mostrar la rebaja tachada. */
   compareAtPrice?: number | null;
   currency: string;
-  /** Precio de costo en USD — SOLO se envía a la administración. */
-  costUsd?: number | null;
+  /** Precio de costo de compra, en CUP — SOLO se envía a la administración. */
+  costCup?: number | null;
   images: string[];
   visible: boolean;
   stock: number | null;

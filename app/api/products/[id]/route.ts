@@ -19,7 +19,7 @@ const patchSchema = z.object({
   price: z.number().positive().max(100_000_000).optional(),
   compareAtPrice: z.number().positive().max(100_000_000).nullable().optional(),
   currency: z.string().min(2).max(6).optional(),
-  costUsd: z.number().min(0).max(100_000_000).nullable().optional(),
+  costCup: z.number().min(0).max(100_000_000).nullable().optional(),
   images: z.array(z.string().min(1)).max(6).optional(),
   visible: z.boolean().optional(),
   stock: z.number().int().min(0).nullable().optional(),
@@ -47,7 +47,7 @@ export async function GET(
   if (!product) {
     return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
   }
-  const { costUsd: _cost, ...rest } = product;
+  const { costCup: _cost, ...rest } = product;
   // Números, no Decimal serializado: las tarjetas hacen aritmética con price.
   // Fotos por /api/img (con caché) en vez de base64 inline.
   // Con enlace de gestor, el precio del detalle también lleva su recargo.

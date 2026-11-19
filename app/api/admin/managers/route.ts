@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 const createSchema = z.object({
   email: z.string().trim().email("Correo inválido"),
   name: z.string().trim().max(80).optional(),
+  /** Teléfono de contacto del gestor. Es opcional. */
+  phone: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .or(z.literal("")),
   rateType: z.enum(["PERCENT", "FIXED"]),
   rateValue: z.number().positive("La ganancia debe ser mayor que cero").max(1_000_000),
   /** Contraseña inicial para que el gestor pueda entrar a ver sus ventas. */
@@ -33,6 +40,7 @@ export async function GET() {
       id: true,
       name: true,
       email: true,
+      phone: true,
       managerCode: true,
       managerRateType: true,
       managerRateValue: true,
@@ -67,6 +75,7 @@ export async function GET() {
         id: m.id,
         name: m.name,
         email: m.email,
+        phone: m.phone,
         code: m.managerCode,
         rateType: m.managerRateType === "FIXED" ? "FIXED" : "PERCENT",
         rateValue: Number(m.managerRateValue ?? 0),
@@ -98,7 +107,7 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const { email, name, rateType, rateValue, password } = parsed.data;
+  const { email, name, phone, rateType, rateValue, password } = parsed.data;
 
   const existing = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
@@ -127,6 +136,7 @@ export async function POST(req: Request) {
     managerRateValue: rateValue,
     managerActive: true,
     name: name || undefined,
+    phone: phone?.trim() || null,
   };
 
   let managerId: string;

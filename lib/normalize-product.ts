@@ -1,17 +1,18 @@
 /**
- * Prisma devuelve `price`, `costUsd` y `compareAtPrice` como Decimal, que al
+ * Prisma devuelve `price`, `costCup` y `compareAtPrice` como Decimal, que al
  * pasar por JSON.stringify se convierten en TEXTO. El panel llamaba
  * `price.toFixed(2)` sobre ese texto y toda la página de administración
  * explotaba con "Algo se trabó al cargar esta página".
  *
  * Todo producto que salga por la API pasa por aquí: siempre números.
  *
- * `costUsd` es el precio de COSTO (solo administración). Sólo se normaliza si
- * la clave existe en el objeto de entrada: quien la omite (la API pública) no
- * debe recibirla de vuelta, ni siquiera como null.
+ * `costCup` es el precio de COSTO de compra, en CUP (la misma moneda en que se
+ * carga el precio de venta) y solo lo ve la administración. Sólo se normaliza
+ * si la clave existe en el objeto de entrada: quien la omite (la API pública)
+ * no debe recibirla de vuelta, ni siquiera como null.
  */
 export function normalizeProduct<
-  T extends { price: unknown; costUsd?: unknown; compareAtPrice?: unknown },
+  T extends { price: unknown; costCup?: unknown; compareAtPrice?: unknown },
 >(p: T) {
   const out: Record<string, unknown> = {
     ...p,
@@ -22,19 +23,19 @@ export function normalizeProduct<
         : Number(p.compareAtPrice),
   };
 
-  if ("costUsd" in p) {
-    out.costUsd =
-      p.costUsd === null || p.costUsd === undefined ? null : Number(p.costUsd);
+  if ("costCup" in p) {
+    out.costCup =
+      p.costCup === null || p.costCup === undefined ? null : Number(p.costCup);
   }
 
   if ("faqs" in p) {
     out.faqs = normalizeFaqs((p as { faqs?: unknown }).faqs);
   }
 
-  return out as Omit<T, "price" | "compareAtPrice" | "costUsd"> & {
+  return out as Omit<T, "price" | "compareAtPrice" | "costCup"> & {
     price: number;
     compareAtPrice: number | null;
-    costUsd?: number | null;
+    costCup?: number | null;
   };
 }
 

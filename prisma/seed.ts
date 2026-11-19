@@ -187,6 +187,31 @@ const SETTINGS = {
 };
 
 async function main() {
+  // GUARDA: la base de producción es la fuente de verdad y ya tiene los datos
+  // reales del dueño. El seed NO llena la base nunca por su cuenta: sólo corre
+  // si se pide EXPLÍCITAMENTE con SEED=1 sobre una base vacía. Sin SEED=1 no
+  // toca nada, tenga o no datos.
+  const existingProducts = await prisma.product.count().catch(() => 0);
+  const existingUsers = await prisma.user.count().catch(() => 0);
+  const hasData = existingProducts > 0 || existingUsers > 0;
+
+  if (process.env.SEED !== "1") {
+    console.log(
+      `Seed omitido: no se cargan datos de ejemplo (${existingProducts} productos, ${existingUsers} cuentas en la base).\n` +
+        "La tienda usa la base de producción y sus datos son la fuente de verdad. " +
+        "Sólo para una base de prueba VACÍA: SEED=1 npm run seed",
+    );
+    return;
+  }
+
+  if (hasData) {
+    console.log(
+      `Seed cancelado: la base ya tiene datos (${existingProducts} productos, ${existingUsers} cuentas). ` +
+        "No se toca la información de producción. Vacía una base de prueba primero si querés recargarla.",
+    );
+    return;
+  }
+
   await prisma.storeSettings.upsert({
     where: { id: "singleton" },
     update: SETTINGS,
@@ -276,8 +301,8 @@ async function main() {
       price: p.price,
       compareAtPrice: p.compareAtPrice ?? null,
       currency: "CUP",
-      // Costo en USD de ejemplo (aproximado, solo visible para administración).
-      costUsd: Math.round((p.price / 320) * 0.62 * 100) / 100,
+      // Costo de compra de ejemplo, en CUP (≈62 % del precio de venta).
+      costCup: Math.round(p.price * 0.62 * 100) / 100,
       images: [p.image],
       visible: true,
       stock: p.stock,

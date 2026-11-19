@@ -111,6 +111,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             value={password}
             onChange={setPassword}
             autoComplete={mode === "register" ? "new-password" : "current-password"}
+            required
             minLength={mode === "register" ? 8 : 1}
             hint={mode === "register" ? "Mínimo 8 caracteres." : undefined}
             className={field}

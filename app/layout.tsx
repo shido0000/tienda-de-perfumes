@@ -12,6 +12,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { NavigationProgress } from "@/components/NavigationProgress";
+import { ManagerPriceNotice } from "@/components/ManagerPriceNotice";
+import { getRefManager } from "@/lib/manager";
 import { ChatWidget } from "@/components/ChatWidget";
 import { storeJsonLd } from "@/lib/structured-data";
 import { getSiteUrl } from "@/lib/site-url";
@@ -110,10 +112,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [settings, user, siteUrl] = await Promise.all([
+  const [settings, user, siteUrl, manager] = await Promise.all([
     getSettings(),
     getCurrentUser(),
     getSiteUrl(),
+    getRefManager().catch(() => null),
   ]);
 
   // Versión sin el base64 del logo: así el objeto de ajustes que viaja al
@@ -144,6 +147,9 @@ export default async function RootLayout({
             <ConfirmProvider>
               <CartProvider>
                 <NavigationProgress />
+                {manager ? (
+                  <ManagerPriceNotice managerName={manager.name ?? null} />
+                ) : null}
                 <div className="flex min-h-screen flex-col">
                   <Header user={user} />
                   <main className="flex-1">{children}</main>

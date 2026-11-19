@@ -1,7 +1,12 @@
 /**
- * Constantes del sistema de gestores que también necesita el middleware
- * (runtime EDGE). Este archivo no importa nada de Node ni Prisma a propósito:
- * el middleware no puede cargar esas dependencias.
+ * Cookie del gestor (revendedor).
+ *
+ * El código del gestor vive SOLO en una cookie de SESIÓN: se borra al cerrar
+ * el navegador y también en cuanto el visitante entra a la tienda por la
+ * dirección normal (sin `?ref=`). Así el recargo de un gestor nunca sigue
+ * pegado a un cliente que después entra por la web normal.
  */
 export const REF_COOKIE = "mm_ref";
-export const REF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90; // 90 días
+
+/** Ya no se usa una caducidad larga: la cookie muere con la sesión del navegador. */
+export const REF_COOKIE_MAX_AGE = 0;

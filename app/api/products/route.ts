@@ -9,7 +9,7 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 
 /**
- * Catálogo público. Nunca incluye `costUsd` (precio de costo, solo admin).
+ * Catálogo público. Nunca incluye `costCup` (precio de costo, solo admin).
  * Filtros: q (texto), category, brand, min/max de precio (en la moneda del
  * producto), inStock, sort.
  */
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
   // `price`/`compareAtPrice` van como NÚMEROS (Prisma los devuelve Decimal).
   // Las fotos se reescriben a /api/img (con caché) para no enviar base64.
   const manager = await getRefManager().catch(() => null);
-  const safe = products.map(({ costUsd: _cost, ...rest }) =>
+  const safe = products.map(({ costCup: _cost, ...rest }) =>
     withManagerPrice(normalizeProduct(withPublicImages(rest)), manager),
   );
   return NextResponse.json({ products: safe });
@@ -99,7 +99,7 @@ const productSchema = z.object({
   /** Precio anterior (rebaja). null/omitido = sin rebaja. */
   compareAtPrice: z.number().positive().max(100_000_000).nullable().optional(),
   currency: z.string().min(2).max(6),
-  costUsd: z.number().min(0).max(100_000_000).nullable().optional(),
+  costCup: z.number().min(0).max(100_000_000).nullable().optional(),
   images: z.array(z.string().min(1)).max(6).default([]),
   visible: z.boolean().default(true),
   stock: z.number().int().min(0).nullable().optional(),
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
       currency: parsed.data.currency.toUpperCase(),
       notes: parsed.data.notes ?? null,
       categoryId: parsed.data.categoryId ?? null,
-      costUsd: parsed.data.costUsd ?? null,
+      costCup: parsed.data.costCup ?? null,
       stock: parsed.data.stock ?? null,
       duration: parsed.data.duration ?? null,
       occasion: parsed.data.occasion ?? null,

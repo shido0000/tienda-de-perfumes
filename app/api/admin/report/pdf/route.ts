@@ -60,7 +60,9 @@ export async function GET(req: Request) {
       prisma.campaign.findMany({ orderBy: { createdAt: "desc" } }).catch(() => []),
     ]);
 
-  const display = settings.displayCurrency;
+  const requested = (searchParams.get("currency") ?? "").toUpperCase();
+  const known = new Set(settings.currencies.map((c) => c.code.toUpperCase()));
+  const display = known.has(requested) ? requested : settings.displayCurrency;
   const toDisplay = (amount: number, from: string) => convert(Number(amount), from, display, settings.currencies);
   const toUsd = (amount: number, from: string) => convert(Number(amount), from, "USD", settings.currencies);
 
@@ -71,7 +73,9 @@ export async function GET(req: Request) {
   const windowUsd = inWindow.reduce((s, r) => s + toUsd(Number(r.total), r.currency), 0);
   const ticketUsd = active.length ? revenueUsd / active.length : 0;
 
-  const inventoryCostUsd = products.reduce((s, p) => s + Number(p.costUsd ?? 0) * (p.stock ?? 0), 0);
+  // El costo de compra se carga en CUP, la misma moneda que el precio de venta.
+  const inventoryCostCup = products.reduce((s, p) => s + Number(p.costCup ?? 0) * (p.stock ?? 0), 0);
+  const inventoryCostUsd = toUsd(inventoryCostCup, "CUP");
 
   const soldMap = new Map<string, { qty: number; usd: number }>();
   for (const r of active) {
@@ -131,7 +135,7 @@ export async function GET(req: Request) {
   const left = 46;
   const contentW = pageW - left * 2;
 
-  const money = (n: number) => formatMoney(n, "USD");
+  const money = (n: number) => formatMoney(toDisplay(n, "USD"), display);
 
   const heading = (text: string) => {
     if (doc.y > doc.page.height - 140) doc.addPage();
@@ -250,8 +254,8 @@ export async function GET(req: Request) {
     { label: "Por reponer (≤3)", value: String(products.filter((p) => p.stock !== null && p.stock <= 3).length) },
   ]);
 
-  heading(`Ventas de los últimos ${days} días (USD)`);
-  barChart(daily.map((d) => ({ label: d.label, value: Math.round(d.usd * 100) / 100 })));
+  heading(`Ventas de los últimos ${days} días (${display})`);
+  barChart(daily.map((d) => ({ label: d.label, value: Math.round(toDisplay(d.usd, "USD") * 100) / 100 })));
 
   heading("Reservas por estado");
   barChart(
@@ -280,7 +284,7 @@ export async function GET(req: Request) {
       p.name,
       p.brand,
       p.stock === null ? "Libre" : String(p.stock),
-      formatMoney(Number(p.price), p.currency),
+      formatMoney(toDisplay(Number(p.price), p.currency), display),
     ]),
     [contentW - 250, 110, 60, 80],
   );
@@ -292,7 +296,7 @@ export async function GET(req: Request) {
   } else {
     for (const c of combos) {
       if (doc.y > doc.page.height - 100) doc.addPage();
-      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(INK).text(`${c.title}  —  ${formatMoney(Number(c.price), c.currency)}`);
+      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(INK).text(`${c.title}  —  ${formatMoney(toDisplay(Number(c.price), c.currency), display)}`);
       doc
         .font("Helvetica")
         .fontSize(8)

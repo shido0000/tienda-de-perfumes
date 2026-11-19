@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
   name: z.string().trim().max(80).nullable().optional(),
+  phone: z.string().trim().max(30).nullable().optional(),
   rateType: z.enum(["PERCENT", "FIXED"]).optional(),
   rateValue: z.number().positive().max(1_000_000).optional(),
   active: z.boolean().optional(),
@@ -23,6 +24,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       id: true,
       name: true,
       email: true,
+      phone: true,
       managerCode: true,
       managerRateType: true,
       managerRateValue: true,
@@ -107,6 +109,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     where: { id: target.id },
     data: {
       ...(body.name !== undefined ? { name: body.name } : {}),
+      ...(body.phone !== undefined ? { phone: body.phone || null } : {}),
       ...(body.rateType ? { managerRateType: body.rateType } : {}),
       ...(body.rateValue !== undefined ? { managerRateValue: body.rateValue } : {}),
       ...(body.active !== undefined ? { managerActive: body.active } : {}),

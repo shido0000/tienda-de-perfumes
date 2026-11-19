@@ -29,7 +29,7 @@ type Draft = {
   notes: string;
   /** Precio de venta en CUP (moneda base de la tienda; se guarda en CUP). */
   price: string;
-  costUsd: string;
+  costCup: string;
   image: string;
   stock: string;
   duration: string;
@@ -48,7 +48,7 @@ const emptyDraft: Draft = {
   categoryId: "",
   notes: "",
   price: "",
-  costUsd: "",
+  costCup: "",
   image: "",
   stock: "",
   duration: "",
@@ -138,7 +138,7 @@ export function AdminProducts({
       categoryId: p.categoryId ?? categories.find((c) => c.name === p.category)?.id ?? "",
       notes: p.notes ?? "",
       price: String(toCup(p.price, p.currency, currencies)),
-      costUsd: p.costUsd === null || p.costUsd === undefined ? "" : String(p.costUsd),
+      costCup: p.costCup === null || p.costCup === undefined ? "" : String(p.costCup),
       image: p.images[0] ?? "",
       stock: p.stock === null ? "" : String(p.stock),
       duration: p.duration ?? "",
@@ -165,7 +165,7 @@ export function AdminProducts({
       categoryId: p.categoryId ?? categories.find((c) => c.name === p.category)?.id ?? "",
       notes: p.notes ?? "",
       price: String(toCup(p.price, p.currency, currencies)),
-      costUsd: p.costUsd === null || p.costUsd === undefined ? "" : String(p.costUsd),
+      costCup: p.costCup === null || p.costCup === undefined ? "" : String(p.costCup),
       image: p.images[0] ?? "",
       stock: "0",
       duration: p.duration ?? "",
@@ -201,7 +201,7 @@ export function AdminProducts({
     e.preventDefault();
     setError(null);
     const price = Number(draft.price);
-    const costUsd = draft.costUsd.trim() === "" ? null : Number(draft.costUsd);
+    const costCup = draft.costCup.trim() === "" ? null : Number(draft.costCup);
     const stock = draft.stock.trim() === "" ? null : Number(draft.stock);
 
     if (!draft.name.trim() || !draft.brand.trim() || !draft.description.trim()) {
@@ -212,8 +212,8 @@ export function AdminProducts({
       setError("El precio debe ser un número mayor a cero.");
       return;
     }
-    if (costUsd !== null && (!Number.isFinite(costUsd) || costUsd < 0)) {
-      setError("El costo en USD debe ser un número mayor o igual a cero.");
+    if (costCup !== null && (!Number.isFinite(costCup) || costCup < 0)) {
+      setError("El costo de compra en CUP debe ser un número mayor o igual a cero.");
       return;
     }
     if (stock !== null && (!Number.isInteger(stock) || stock < 0)) {
@@ -236,7 +236,7 @@ export function AdminProducts({
       notes: draft.notes.trim() || null,
       price,
       currency: "CUP",
-      costUsd,
+      costCup,
       images: draft.image.trim() ? [draft.image.trim()] : [],
       visible: draft.visible,
       stock,
@@ -451,13 +451,13 @@ export function AdminProducts({
             </span>
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-muted">Costo (USD) · solo admin</span>
+            <span className="text-xs font-medium text-muted">Costo de compra (CUP) · solo admin</span>
             <input
               type="number"
               step="0.01"
               min="0"
-              value={draft.costUsd}
-              onChange={(e) => setDraft((d) => ({ ...d, costUsd: e.target.value }))}
+              value={draft.costCup}
+              onChange={(e) => setDraft((d) => ({ ...d, costCup: e.target.value }))}
               className={`${inputClass} mt-1.5 tabular-nums`}
               placeholder="Opcional"
             />
@@ -747,7 +747,7 @@ export function AdminProducts({
                     <th className="px-4 py-3">Producto</th>
                     <th className="px-4 py-3">Categoría</th>
                     <th className="px-4 py-3 text-right">Precio</th>
-                    <th className="px-4 py-3 text-right">Costo USD</th>
+                    <th className="px-4 py-3 text-right">Costo (CUP)</th>
                     <th className="px-4 py-3 text-right">Stock</th>
                     <th className="px-4 py-3" />
                   </tr>
@@ -769,9 +769,9 @@ export function AdminProducts({
                         {cupLabel(priceCup(p))}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted">
-                        {p.costUsd === null || p.costUsd === undefined
+                        {p.costCup === null || p.costCup === undefined
                           ? "—"
-                          : `US$ ${p.costUsd.toFixed(2)}`}
+                          : cupLabel(p.costCup)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
                         {p.stock === null ? (

@@ -29,25 +29,37 @@ export function AccountProfile({
     setOk(null);
     setError(null);
 
-    if (!name.trim()) {
-      setError("Escribí tu nombre.");
+    // Cambiar la contraseña es opcional: si el campo nuevo está vacío, se
+    // guardan solo los datos y la contraseña queda como estaba.
+    if (newPassword && !currentPassword) {
+      setError("Para cambiar la contraseña escribí la actual. Si no querés cambiarla, dejá vacío el campo «Contraseña nueva».");
       setBusy(false);
       return;
     }
-    if (newPassword && !currentPassword) {
-      setError("Para cambiar la contraseña escribí la actual.");
+    if (newPassword && newPassword.length < 6) {
+      setError("La contraseña nueva debe tener al menos 6 caracteres.");
       setBusy(false);
       return;
+    }
+    if (!newPassword && currentPassword) {
+      setError("Escribiste la contraseña actual pero no una nueva. Si no querés cambiarla, dejá los dos campos vacíos.");
+      setBusy(false);
+      return;
+    }
+
+    const payload: Record<string, string> = {
+      name: name.trim(),
+      phone: phone.trim(),
+    };
+    if (newPassword) {
+      payload.currentPassword = currentPassword;
+      payload.newPassword = newPassword;
     }
 
     const res = await fetch("/api/account", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        phone: phone.trim(),
-        ...(newPassword ? { currentPassword, newPassword } : {}),
-      }),
+      body: JSON.stringify(payload),
     }).catch(() => null);
     setBusy(false);
 
@@ -58,7 +70,7 @@ export function AccountProfile({
     }
     setCurrentPassword("");
     setNewPassword("");
-    setOk("Tus datos se guardaron.");
+    setOk(newPassword ? "Tus datos y tu contraseña se guardaron." : "Tus datos se guardaron.");
     router.refresh();
   };
 

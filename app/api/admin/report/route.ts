@@ -48,7 +48,11 @@ export async function GET(req: Request) {
       prisma.campaign.findMany({ orderBy: { createdAt: "desc" } }).catch(() => []),
     ]);
 
-  const display = settings.displayCurrency;
+  // Moneda del informe: cualquiera que tenga configurada la tienda. Si no se
+  // pide ninguna válida, se usa la moneda de visualización del panel.
+  const requested = (searchParams.get("currency") ?? "").toUpperCase();
+  const known = new Set(settings.currencies.map((c) => c.code.toUpperCase()));
+  const display = known.has(requested) ? requested : settings.displayCurrency;
   const toDisplay = (amount: number, from: string) =>
     convert(Number(amount), from, display, settings.currencies);
   const toUsd = (amount: number, from: string) =>
@@ -71,25 +75,35 @@ export async function GET(req: Request) {
     byPayment[r.paymentMethod] = (byPayment[r.paymentMethod] ?? 0) + 1;
   }
 
-  const soldMap = new Map<string, { qty: number; usd: number }>();
+  const soldMap = new Map<string, { qty: number; usd: number; display: number }>();
   for (const r of paid) {
     for (const it of r.items) {
-      const prev = soldMap.get(it.name) ?? { qty: 0, usd: 0 };
+      const prev = soldMap.get(it.name) ?? { qty: 0, usd: 0, display: 0 };
       soldMap.set(it.name, {
         qty: prev.qty + it.quantity,
         usd: prev.usd + toUsd(Number(it.priceConverted), it.orderCurrency) * it.quantity,
+        display:
+          prev.display +
+          toDisplay(Number(it.priceConverted), it.orderCurrency) * it.quantity,
       });
     }
   }
   const topProducts = [...soldMap.entries()]
-    .map(([name, v]) => ({ name, quantity: v.qty, revenueUsd: Math.round(v.usd * 100) / 100 }))
+    .map(([name, v]) => ({
+      name,
+      quantity: v.qty,
+      revenueUsd: Math.round(v.usd * 100) / 100,
+      revenueDisplay: Math.round(v.display * 100) / 100,
+    }))
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 10);
 
-  const inventoryCostUsd = products.reduce(
-    (s, p) => s + Number(p.costUsd ?? 0) * (p.stock ?? 0),
+  // El costo de compra se carga en CUP, la misma moneda que el precio de venta.
+  const inventoryCostCup = products.reduce(
+    (s, p) => s + Number(p.costCup ?? 0) * (p.stock ?? 0),
     0,
   );
+  const inventoryCostUsd = toUsd(inventoryCostCup, "CUP");
 
   const money = (n: number, cur = display) => ({ amount: Math.round(n * 100) / 100, currency: cur });
 
@@ -102,6 +116,8 @@ export async function GET(req: Request) {
       address: settings.storeAddress,
       currency: display,
     },
+    /** Monedas disponibles para volver a mirar el informe en otra moneda. */
+    currencies: settings.currencies.map((c) => ({ code: c.code, symbol: c.symbol, label: c.label })),
     summary: {
       revenue: money(revenue),
       revenueUsd: money(revenueUsd, "USD"),
@@ -119,6 +135,7 @@ export async function GET(req: Request) {
       categories: categories.length,
       campaigns: campaigns.length,
       inventoryCostUsd: money(inventoryCostUsd, "USD"),
+      inventoryCost: money(convert(inventoryCostCup, "CUP", display, settings.currencies)),
       lowStock: products.filter((p) => p.stock !== null && p.stock <= 3).length,
     },
     byStatus,
@@ -134,7 +151,7 @@ export async function GET(req: Request) {
       currency: p.currency,
       stock: p.stock,
       visible: p.visible,
-      costUsd: p.costUsd === null ? null : Number(p.costUsd),
+      costCup: p.costCup === null ? null : Number(p.costCup),
     })),
     combos: combos.map((c) => ({
       id: c.id,

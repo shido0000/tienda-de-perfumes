@@ -427,5 +427,5 @@ Recomendaciones al terminar:
 | `Failed to fetch` | El proyecto subía `node_modules` y `.next` (900 MB) y la subida se cortaba | Ya resuelto con `.gitignore` y `.vercelignore` |
 | `este cambio en el esquema destruiría datos existentes` | El esquema ya no coincide con las columnas reales de la base | Alinear el esquema a la base o vaciar las tablas (sección 3) |
 | `no schema has been selected to create in` | Se borró el esquema de Postgres, no solo las tablas | Pedir que se reprovisione la base; nunca usar `--force-reset` |
-| La web abre pero sin productos | La base del deploy está vacía | Redeploy (el seed corre solo) o `npm run db:seed` |
+| La web abre pero sin productos | La base del deploy está vacía | El seed ya **no** corre solo (protege los datos de producción). Sólo en una base vacía: `npm run db:push && npm run db:seed` |
 | No puedo entrar como administrador | Las variables `ADMIN_EMAIL` / `ADMIN_PASSWORD` no están definidas en el deploy | Definirlas y hacer Redeploy; después correr `npm run db:seed` para que la cuenta se actualice |

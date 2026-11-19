@@ -22,6 +22,7 @@ type Manager = {
   id: string;
   name: string | null;
   email: string;
+  phone: string | null;
   code: string | null;
   rateType: "PERCENT" | "FIXED";
   rateValue: number;
@@ -258,6 +259,7 @@ function CreateForm({
   const toast = useToast();
   const [email, setEmail] = useState(initialEmail ?? "");
   const [name, setName] = useState(initialName ?? "");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [rateType, setRateType] = useState<"PERCENT" | "FIXED">("PERCENT");
   const [rateValue, setRateValue] = useState("10");
@@ -280,6 +282,7 @@ function CreateForm({
       body: JSON.stringify({
         email: email.trim(),
         name: name.trim() || undefined,
+        phone: phone.trim() || undefined,
         rateType,
         rateValue: value,
         password: password.trim() || undefined,
@@ -294,6 +297,7 @@ function CreateForm({
     toast.success("Gestor creado", "Copiá su enlace y compartilo: ya suma ganancias.");
     setEmail("");
     setName("");
+    setPhone("");
     setPassword("");
     setRateValue("10");
     onCreated();
@@ -325,6 +329,19 @@ function CreateForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ej. Laura Pérez"
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-muted">
+            Teléfono (opcional)
+          </span>
+          <input
+            type="tel"
+            inputMode="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+53 5000 0000"
             className={inputClass}
           />
         </label>
@@ -408,11 +425,16 @@ function ManagerRow({
   const [busy, setBusy] = useState(false);
   const [rateValue, setRateValue] = useState(String(manager.rateValue));
   const [rateType, setRateType] = useState(manager.rateType);
+  const [phone, setPhone] = useState(manager.phone ?? "");
 
   useEffect(() => {
     setRateValue(String(manager.rateValue));
     setRateType(manager.rateType);
   }, [manager.rateValue, manager.rateType]);
+
+  useEffect(() => {
+    setPhone(manager.phone ?? "");
+  }, [manager.phone]);
 
   const link = manager.code ? `${origin}/r/${manager.code}` : "";
 
@@ -476,6 +498,9 @@ function ManagerRow({
             </span>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted">{manager.email}</p>
+          {manager.phone && (
+            <p className="mt-0.5 truncate text-xs text-muted">{manager.phone}</p>
+          )}
         </div>
         <div className="flex items-center gap-4 text-right">
           <div>
@@ -525,6 +550,30 @@ function ManagerRow({
                 <Copy size={14} /> Copiar
               </button>
             </div>
+          </div>
+
+          {/* Teléfono de contacto */}
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="block flex-1 sm:max-w-xs">
+              <span className="mb-1 block text-xs font-medium text-muted">
+                Teléfono de contacto (opcional)
+              </span>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+53 5000 0000"
+                className={inputClass}
+              />
+            </label>
+            <button
+              onClick={() => patch({ phone: phone.trim() || null }, "Teléfono guardado.")}
+              disabled={busy}
+              className="rounded-control bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:opacity-90 disabled:opacity-60"
+            >
+              Guardar teléfono
+            </button>
           </div>
 
           {/* Tasa */}

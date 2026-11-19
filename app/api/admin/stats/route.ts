@@ -28,9 +28,15 @@ export async function GET(request: Request) {
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const settings = await getSettings();
-  const display = settings.displayCurrency;
   const url = new URL(request.url);
   const range = parseRange(url.searchParams.get("days"));
+
+  // Moneda del panel: el dueño puede mirar TODAS las estadísticas en cualquier
+  // moneda que tenga configurada, sin cambiarla para la tienda. Si no pide
+  // ninguna (o pide una que ya no existe), se usa la moneda de visualización.
+  const requested = (url.searchParams.get("currency") ?? "").toUpperCase();
+  const known = new Set(settings.currencies.map((c) => c.code.toUpperCase()));
+  const display = known.has(requested) ? requested : settings.displayCurrency;
 
   const [reservations, products, users, categories] = await Promise.all([
     prisma.reservation.findMany({
@@ -57,7 +63,7 @@ export async function GET(request: Request) {
         stock: true,
         visible: true,
         price: true,
-        costUsd: true,
+        costCup: true,
         currency: true,
       },
     }),
@@ -159,15 +165,17 @@ export async function GET(request: Request) {
     .sort((a, b) => a.stock - b.stock);
 
   // Valor del inventario a precio de venta y al costo, en la moneda del panel.
-  const inventoryCostUsd = products.reduce(
-    (s, p) => s + Number(p.costUsd ?? 0) * (p.stock ?? 0),
+  // El costo de compra se carga en CUP, igual que el precio de venta.
+  const inventoryCostCup = products.reduce(
+    (s, p) => s + Number(p.costCup ?? 0) * (p.stock ?? 0),
     0,
   );
   const inventoryRetailUsd = products.reduce(
     (s, p) => s + (p.stock ? toUsd(Number(p.price), p.currency) * p.stock : 0),
     0,
   );
-  const inventoryCost = usdToDisplay(inventoryCostUsd);
+  const inventoryCostUsd = toUsd(inventoryCostCup, "CUP");
+  const inventoryCost = toDisplay(inventoryCostCup, "CUP");
   const inventoryRetail = usdToDisplay(inventoryRetailUsd);
 
   const since30 = new Date(today);
@@ -180,6 +188,9 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     currency: display,
+    /** Monedas que el dueño puede elegir para mirar las estadísticas. */
+    currencies: settings.currencies.map((c) => ({ code: c.code, symbol: c.symbol, label: c.label })),
+    defaultCurrency: settings.displayCurrency,
     range,
     ranges: RANGES,
     cards: {

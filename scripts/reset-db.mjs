@@ -3,23 +3,31 @@
  * Vacía la base y la vuelve a llenar con el catálogo de ejemplo.
  *
  * Uso:
- *   npm run db:reset          -> borra las TABLAS, las recrea y carga el seed
+ *   CONFIRM_RESET=1 npm run db:reset   -> borra las TABLAS, las recrea y carga el seed
  *
- * IMPORTANTE — qué borra exactamente:
- *   Este script borra las TABLAS (y por tanto las filas) del esquema de la app.
+ * IMPORTANTE — por qué pide confirmación:
+ *   La tienda usa la base de PRODUCCIÓN, que ya tiene los perfumes, las cuentas
+ *   y los textos reales del dueño. Este script borra TODAS las tablas (y por
+ *   tanto todas las filas). Para que nadie la vacíe por accidente escribiendo
+ *   `npm run db:reset`, sólo se ejecuta si se pasa CONFIRM_RESET=1 a mano.
+ *
  *   NO borra el esquema de Postgres ni la base de datos: eso lo administra la
- *   plataforma y, si se borra, ningún proceso de la app puede volver a crearlo.
- *   (Un intento anterior con `prisma db push --force-reset` sí lo borraba y dejó
- *   el entorno de preview inutilizable. Por eso ese comando ya no se usa aquí.)
- *
- * DÓNDE corre: en la base de PREVIEW del workspace. La base de producción que
- * se provisiona en cada deploy se pone al día sola con `scripts/db-prepare.mjs`
- * durante el build; ver GUIA-DEPLOY.md.
+ *   plataforma. Sólo borra las tablas de la app y las vuelve a crear.
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 
-// `node` no lee .env por su cuenta; se carga igual que en scripts/db-prepare.mjs.
+if (process.env.CONFIRM_RESET !== "1") {
+  console.error(
+    "Reset cancelado: este comando BORRA todas las tablas y sus datos.\n" +
+      "La app usa la base de producción, que ya tiene la información real del negocio.\n" +
+      "Si de verdad querés vaciarla (sólo en una base de pruebas), ejecutá:\n" +
+      "  CONFIRM_RESET=1 npm run db:reset",
+  );
+  process.exit(1);
+}
+
+// Cargar .env / .env.local a mano: un `node` suelto no lo hace solo.
 const loadEnvFile = (file) => {
   if (!existsSync(file)) return;
   for (const line of readFileSync(file, "utf8").split("\n")) {
@@ -41,87 +49,31 @@ loadEnvFile(".env.local");
 loadEnvFile(".env");
 
 if (!process.env.DATABASE_URL) {
-  console.error(
-    "[db:reset] DATABASE_URL no está definida. Configurala en .env antes de reiniciar la base.",
-  );
+  console.error("Falta DATABASE_URL: no hay base a la que conectarse.");
   process.exit(1);
 }
-
-const target = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
-const schemaName = (() => {
-  try {
-    return new URL(target).searchParams.get("schema") || "public";
-  } catch {
-    return "public";
-  }
-})();
-const host = (() => {
-  try {
-    return new URL(target).host;
-  } catch {
-    return "(host desconocido)";
-  }
-})();
-
-console.log(`[db:reset] Base: ${host}  ·  esquema: ${schemaName}`);
-console.log("[db:reset] Se van a borrar TODOS los datos actuales (reservas, usuarios, productos).");
 
 const run = (args) => {
+  console.log(`\n▶ npx ${args.join(" ")}`);
   const r = spawnSync("npx", args, { stdio: "inherit", env: process.env });
-  return r.status === 0;
-};
-
-const sql = (statement, label) => {
-  const r = spawnSync(
-    "npx",
-    ["prisma", "db", "execute", "--url", target, "--stdin"],
-    { input: statement, stdio: ["pipe", "inherit", "inherit"], env: process.env },
-  );
   if (r.status !== 0) {
-    console.error(`[db:reset] Falló ${label}.`);
-    return false;
+    console.error(`Falló: npx ${args.join(" ")}`);
+    process.exit(1);
   }
-  return true;
 };
 
-console.log("[db:reset] 1/3 — borrando las tablas existentes…");
-// Se enumeran las tablas del esquema y se eliminan una por una: el esquema en sí
-// queda intacto, así que el paso siguiente puede volver a crear las tablas.
-const dropTables = `
-DO $$
-DECLARE r RECORD;
-BEGIN
-  FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = '${schemaName}')
-  LOOP
-    EXECUTE format('DROP TABLE IF EXISTS %I.%I CASCADE', '${schemaName}', r.tablename);
-  END LOOP;
-END $$;`;
+// Recrea todas las tablas desde cero (esto sí borra datos: de ahí la guarda).
+run(["prisma", "db", "push", "--force-reset", "--skip-generate"]);
+run(["prisma", "generate"]);
 
-if (!sql(dropTables, "el borrado de tablas")) {
-  console.error(
-    "[db:reset] No se pudo vaciar la base. Revisá DATABASE_URL/DIRECT_URL y que la " +
-      "base siga accesible. No se borró nada más.",
-  );
+// Carga el catálogo de ejemplo en la base recién vacía.
+const seed = spawnSync("npx", ["tsx", "prisma/seed.ts"], {
+  stdio: "inherit",
+  env: { ...process.env, SEED: "1" },
+});
+if (seed.status !== 0) {
+  console.error("El seed falló, pero las tablas ya están creadas y vacías.");
   process.exit(1);
 }
 
-console.log("[db:reset] 2/3 — creando las tablas del esquema…");
-if (!run(["prisma", "db", "push", "--skip-generate"])) {
-  console.error(
-    "[db:reset] No se pudieron crear las tablas. Si el mensaje dice " +
-      '"no schema has been selected to create in", el esquema de Postgres no ' +
-      "existe y hay que pedir que se vuelva a provisionar la base (ver GUIA-DEPLOY.md).",
-  );
-  process.exit(1);
-}
-
-console.log("[db:reset] 3/3 — cargando los datos iniciales…");
-if (!run(["prisma", "db", "seed"])) {
-  console.error(
-    "[db:reset] Las tablas quedaron vacías pero el seed falló. Corré `npm run db:seed` a mano.",
-  );
-  process.exit(1);
-}
-
-console.log("[db:reset] Listo: base limpia con el catálogo de ejemplo y la cuenta de administrador.");
-process.exit(0);
+console.log("\n✔ Base vaciada y datos de ejemplo cargados.");

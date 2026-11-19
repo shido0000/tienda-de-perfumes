@@ -31,7 +31,7 @@ export async function GET() {
       price: true,
       compareAtPrice: true,
       currency: true,
-      costUsd: true,
+      costCup: true,
       images: true,
       visible: true,
       stock: true,

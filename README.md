@@ -68,6 +68,8 @@ Para comprobar el estado después de un deploy, abrí `/api/health`:
 { "ok": true, "productCount": 8, "adminExists": true }
 ```
 
+El seed **no** corre en el build ni en el deploy: la base de producción es la fuente de verdad y ya tiene los datos reales. El seed sólo se ejecuta a mano, y se cancela solo si la base ya tiene productos o cuentas.
+
 Si `productCount` es 0 o `adminExists` es `false`, corré `npm run db:push && npm run db:seed`
 en el entorno donde vive la base (necesita `DATABASE_URL` y, si usás un pooler,
 también `DIRECT_URL` para las migraciones).

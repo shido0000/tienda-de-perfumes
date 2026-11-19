@@ -45,12 +45,13 @@ type Report = {
     categories: number;
     campaigns: number;
     inventoryCostUsd: { amount: number; currency: string };
+    inventoryCost: { amount: number; currency: string };
     lowStock: number;
   };
   byStatus: Record<string, number>;
   byDelivery: Record<string, number>;
   byPayment: Record<string, number>;
-  topProducts: { name: string; quantity: number; revenueUsd: number }[];
+  topProducts: { name: string; quantity: number; revenueUsd: number; revenueDisplay?: number }[];
   products: {
     id: string;
     name: string;
@@ -60,7 +61,7 @@ type Report = {
     currency: string;
     stock: number | null;
     visible: boolean;
-    costUsd: number | null;
+    costCup: number | null;
   }[];
   combos: {
     id: string;
@@ -86,6 +87,7 @@ type Report = {
     items: { name: string; quantity: number }[];
   }[];
   users: { id: string; name: string | null; email: string; role: string; createdAt: string }[];
+  currencies?: { code: string; symbol: string; label: string }[];
   campaigns: {
     id: string;
     title: string;
@@ -132,15 +134,19 @@ function Section({
 
 export function AdminReport({ currency }: { currency: string }) {
   const [days, setDays] = useState(30);
+  // Moneda del informe. "" = la moneda del panel que llega por prop.
+  const [viewCurrency, setViewCurrency] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback((d: number) => {
+  const load = useCallback((d: number, cur: string) => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/admin/report?days=${d}`, { signal: controller.signal })
+    const q = new URLSearchParams({ days: String(d) });
+    if (cur) q.set("currency", cur);
+    fetch(`/api/admin/report?${q.toString()}`, { signal: controller.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error("No pudimos generar el reporte.");
         return r.json();
@@ -156,9 +162,9 @@ export function AdminReport({ currency }: { currency: string }) {
   }, []);
 
   useEffect(() => {
-    const c = load(days);
+    const c = load(days, viewCurrency);
     return () => c.abort();
-  }, [days, load]);
+  }, [days, viewCurrency, load]);
 
   const statusRows = useMemo(
     () => Object.entries(report?.byStatus ?? {}) as [string, number][],
@@ -170,7 +176,7 @@ export function AdminReport({ currency }: { currency: string }) {
       <div className="rounded-card border border-line bg-surface p-6 text-center">
         <p className="text-sm text-danger">{error}</p>
         <button
-          onClick={() => load(days)}
+          onClick={() => load(days, viewCurrency)}
           className="mt-3 inline-flex items-center gap-1.5 rounded-control border border-line px-3 py-1.5 text-xs text-ink hover:border-primary hover:text-primary"
         >
           <ArrowClockwise size={14} /> Reintentar
@@ -192,6 +198,19 @@ export function AdminReport({ currency }: { currency: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
+            value={viewCurrency}
+            onChange={(e) => setViewCurrency(e.target.value)}
+            aria-label="Moneda del reporte"
+            className="rounded-control border border-line bg-bg px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <option value="">Moneda del panel ({currency})</option>
+            {(report?.currencies ?? []).map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label} ({c.symbol})
+              </option>
+            ))}
+          </select>
+          <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
             aria-label="Periodo del reporte"
@@ -204,13 +223,15 @@ export function AdminReport({ currency }: { currency: string }) {
             ))}
           </select>
           <button
-            onClick={() => load(days)}
+            onClick={() => load(days, viewCurrency)}
             className="inline-flex items-center gap-1.5 rounded-control border border-line px-3 py-2 text-sm text-ink transition-colors hover:border-primary hover:text-primary"
           >
             <ArrowClockwise size={15} /> Actualizar
           </button>
           <a
-            href={`/api/admin/report/pdf?days=${days}`}
+            href={`/api/admin/report/pdf?days=${days}${
+              viewCurrency ? `&currency=${encodeURIComponent(viewCurrency)}` : ""
+            }`}
             className="inline-flex items-center gap-1.5 rounded-control bg-primary px-3.5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-accent"
           >
             <FilePdf size={15} /> Descargar PDF
@@ -253,12 +274,12 @@ export function AdminReport({ currency }: { currency: string }) {
                 {
                   k: `Ingresos (${report.period.days} días)`,
                   v: money(report.summary.windowRevenue.amount, report.store.currency),
-                  sub: `≈ ${money(report.summary.windowUsd.amount, "USD")}`,
+                  sub: `${report.summary.windowReservations} reservas en el periodo`,
                 },
                 {
                   k: "Ingresos históricos",
                   v: money(report.summary.revenue.amount, report.store.currency),
-                  sub: `≈ ${money(report.summary.revenueUsd.amount, "USD")}`,
+                  sub: `${report.summary.paidReservations} ventas cerradas`,
                 },
                 {
                   k: "Reservas en el periodo",
@@ -269,9 +290,9 @@ export function AdminReport({ currency }: { currency: string }) {
                   k: "Ticket promedio",
                   v: money(
                     report.summary.paidReservations
-                      ? report.summary.revenueUsd.amount / report.summary.paidReservations
+                      ? report.summary.revenue.amount / report.summary.paidReservations
                       : 0,
-                    "USD",
+                    report.store.currency,
                   ),
                   sub: `${report.summary.paidReservations} con venta`,
                 },
@@ -293,7 +314,7 @@ export function AdminReport({ currency }: { currency: string }) {
                 ["Usuarios", `${report.summary.users} (${report.summary.admins} admin)`],
                 ["Campañas", String(report.summary.campaigns)],
                 ["Stock bajo", String(report.summary.lowStock)],
-                ["Costo de inventario", money(report.summary.inventoryCostUsd.amount, "USD")],
+                ["Costo de inventario", money(report.summary.inventoryCost.amount, report.store.currency)],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-2">
                   <span className="text-muted">{k}</span>
@@ -355,11 +376,11 @@ export function AdminReport({ currency }: { currency: string }) {
               <p className="text-xs text-muted">Todavía no hay ventas.</p>
             ) : (
               <Table
-                head={["Producto", "Unidades", "Ingresos (USD)"]}
+                head={["Producto", "Unidades", `Ingresos (${report.store.currency})`]}
                 rows={report.topProducts.map((p) => [
                   p.name,
                   String(p.quantity),
-                  money(p.revenueUsd, "USD"),
+                  money(p.revenueDisplay ?? p.revenueUsd, report.store.currency),
                 ])}
               />
             )}
