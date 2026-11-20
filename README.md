@@ -1,5 +1,10 @@
 # Mist & Mood — perfumería de nicho (reservas online)
 
+El **asistente del chat** muestra siempre el mismo precio que ve el visitante en
+la tienda: si entró por el enlace de un gestor, sus respuestas usan el precio
+con la ganancia del gestor incluida (y no lo menciona, para el cliente es el
+precio normal). Si entró por la web normal, usa el precio de venta.
+
 Tienda de perfumes donde el cliente **reserva** fragancias: arma el carrito, elige
 retiro en tienda o envío por kilómetro (calculado por distancia), paga en efectivo
 o por transferencia, y la tienda confirma cada reserva desde el panel de administración.

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Vacía la base y la vuelve a llenar con el catálogo de ejemplo.
+ * Vacía la base y recrea las tablas VACÍAS (sin datos de ejemplo).
  *
  * Uso:
- *   CONFIRM_RESET=1 npm run db:reset   -> borra las TABLAS, las recrea y carga el seed
+ *   CONFIRM_RESET=1 npm run db:reset   -> borra las TABLAS, las recrea vacías
  *
  * IMPORTANTE — por qué pide confirmación:
  *   La tienda usa la base de PRODUCCIÓN, que ya tiene los perfumes, las cuentas

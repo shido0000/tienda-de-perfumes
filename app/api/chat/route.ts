@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/session";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { resolveAiConfig } from "@/lib/ai-config";
 import { askAi, type AiTurn } from "@/lib/chat-ai";
+import { getRefManager, markedPrice, type ManagerInfo } from "@/lib/manager";
 
 export const dynamic = "force-dynamic";
 
@@ -137,19 +138,28 @@ function keywords(text: string): string[] {
     .filter((w) => w.length > 2 && !STOP.has(w));
 }
 
-function toChatProduct(p: {
-  id: string;
-  name: string;
-  brand: string;
-  price: unknown;
-  currency: string;
-  images: string[];
-}): ChatProduct {
+function toChatProduct(
+  p: {
+    id: string;
+    name: string;
+    brand: string;
+    price: unknown;
+    currency: string;
+    images: string[];
+  },
+  manager: ManagerInfo | null = null,
+): ChatProduct {
+  // El visitante que llegó por el enlace de un gestor paga el precio + la
+  // ganancia del gestor, igual que en el catálogo y en el carrito. El asistente
+  // debe mostrar exactamente ese mismo precio, sin decirle al cliente que hay
+  // un recargo.
+  const base = Number(p.price);
+  const price = manager ? markedPrice(base, manager) : base;
   return {
     id: p.id,
     name: p.name,
     brand: p.brand,
-    price: formatMoney(Number(p.price), p.currency),
+    price: formatMoney(price, p.currency),
     image: p.images?.[0] ?? null,
   };
 }
@@ -159,6 +169,7 @@ function productsMentioned(
   text: string,
   catalog: { id: string; name: string; brand: string }[],
   all: Parameters<typeof toChatProduct>[0][],
+  manager: ManagerInfo | null = null,
 ): ChatProduct[] {
   const hay = norm(text);
   const hits = all.filter((p) => {
@@ -168,7 +179,7 @@ function productsMentioned(
     const first = name.split(/\s+/)[0];
     return first.length > 3 && new RegExp(`(^|[^a-z0-9])${first}([^a-z0-9]|$)`).test(hay);
   });
-  return hits.slice(0, 4).map(toChatProduct);
+  return hits.slice(0, 4).map((p) => toChatProduct(p, manager));
 }
 
 export async function POST(req: Request) {
@@ -236,6 +247,11 @@ export async function POST(req: Request) {
   const text = norm(message).trim();
   const intent = bestIntent(text);
   const settings = await getSettings();
+  // Si el visitante entró por el enlace de un gestor, el asistente muestra los
+  // mismos precios que ve en la tienda: precio real + ganancia del gestor.
+  const manager = await getRefManager().catch(() => null);
+  const priced = (value: unknown, currency: string) =>
+    formatMoney(manager ? markedPrice(Number(value), manager) : Number(value), currency);
   const wa = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(
     `Hola ${settings.brand}, tengo una consulta: ${message || "..."}`,
   )}`;
@@ -334,14 +350,25 @@ export async function POST(req: Request) {
     const catalogText = catalog
       .map(
         (p) =>
-          `- ${p.name} · ${p.brand} · ${formatMoney(Number(p.price), p.currency)} · ${
+          `- ${p.name} · ${p.brand} · ${formatMoney(
+            manager ? markedPrice(Number(p.price), manager) : Number(p.price),
+            p.currency,
+          )} · ${
             p.category || "sin familia"
           }${p.notes ? ` · notas: ${p.notes}` : ""}`,
       )
       .join("\n");
 
     const combosText = combos.length
-      ? combos.map((c) => `- ${c.title} · ${formatMoney(Number(c.price), c.currency)}`).join("\n")
+      ? combos
+          .map(
+            (c) =>
+              `- ${c.title} · ${formatMoney(
+                manager ? markedPrice(Number(c.price), manager) : Number(c.price),
+                c.currency,
+              )}`,
+          )
+          .join("\n")
       : "Ninguna oferta activa.";
 
     const system = [
@@ -384,7 +411,7 @@ export async function POST(req: Request) {
     });
 
     if (answer) {
-      const products = productsMentioned(answer, catalog, catalog);
+      const products = productsMentioned(answer, catalog, catalog, manager);
       return NextResponse.json({
         reply: answer,
         suggestions: [
@@ -517,7 +544,7 @@ export async function POST(req: Request) {
     }
     const list = combos
       .slice(0, 4)
-      .map((c) => `• ${c.title} — ${formatMoney(Number(c.price), c.currency)}`)
+      .map((c) => `• ${c.title} — ${priced(c.price, c.currency)}`)
       .join("\n");
     return NextResponse.json(
       base(`Estas son las ofertas vigentes:\n${list}\nLas encontrás en la sección Ofertas.`, [
@@ -556,7 +583,7 @@ export async function POST(req: Request) {
         reply: `Estas fragancias encajan con lo que buscás. Tocá una para ver sus notas y reservarla:`,
         suggestions: ["¿Cuánto cuesta el envío?", "¿Cómo pago?"],
         whatsapp: wa,
-        products: found.map(toChatProduct),
+        products: found.map((p) => toChatProduct(p, manager)),
       } satisfies Reply);
     }
   }
@@ -570,7 +597,7 @@ export async function POST(req: Request) {
         : "El catálogo está cargándose en este momento; escribinos por WhatsApp y te pasamos las opciones.",
       suggestions: ["¿Cuánto cuesta el envío?", "¿Cómo pago?", "¿Tienen ofertas?"],
       whatsapp: wa,
-      products: sample.map(toChatProduct),
+      products: sample.map((p) => toChatProduct(p, manager)),
     } satisfies Reply);
   }
 
