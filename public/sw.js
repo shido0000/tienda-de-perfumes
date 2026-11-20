@@ -11,7 +11,7 @@
  * Nada de precachear HTML dinámico: servir una portada vieja desde caché haría
  * que el cliente viera precios y stock desactualizados.
  */
-const VERSION = "mistmood-v4";
+const VERSION = "mistmood-v6";
 const STATIC_CACHE = `${VERSION}-static`;
 const OFFLINE_CACHE = `${VERSION}-offline`;
 const OFFLINE_URL = "/offline";
@@ -34,6 +34,23 @@ self.addEventListener("install", (event) => {
 // las pestañas).
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+
+  // El administrador cambió el logo: borramos las cachés de estáticos para que
+  // el ícono/logo nuevo se descargue en la próxima visita (sin reinstalar).
+  if (event.data && event.data.type === "REFRESH_ICONS") {
+    event.waitUntil(
+      (async () => {
+        const names = await caches.keys();
+        await Promise.all(
+          names
+            .filter((n) => n.endsWith("-static") || n.endsWith("-offline"))
+            .map((n) => caches.delete(n)),
+        );
+        const all = await self.clients.matchAll({ type: "window" });
+        all.forEach((c) => c.postMessage({ type: "ICONS_REFRESHED" }));
+      })(),
+    );
+  }
 });
 
 self.addEventListener("activate", (event) => {
@@ -109,11 +126,12 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
-      icon: "/icons/icon-192.png",
+      // El dueño puede poner un logo propio: la notificación usa ESE ícono.
+      icon: payload.icon || "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
       tag: payload.tag || "mistmood",
       renotify: true,
-      data: { url: payload.url || "/admin" },
+      data: { url: payload.url || "/admin", icon: payload.icon || null },
       vibrate: [90, 60, 90],
     }),
   );

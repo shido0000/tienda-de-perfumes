@@ -66,14 +66,7 @@ const run = (args) => {
 run(["prisma", "db", "push", "--force-reset", "--skip-generate"]);
 run(["prisma", "generate"]);
 
-// Carga el catálogo de ejemplo en la base recién vacía.
-const seed = spawnSync("npx", ["tsx", "prisma/seed.ts"], {
-  stdio: "inherit",
-  env: { ...process.env, SEED: "1" },
-});
-if (seed.status !== 0) {
-  console.error("El seed falló, pero las tablas ya están creadas y vacías.");
-  process.exit(1);
-}
-
-console.log("\n✔ Base vaciada y datos de ejemplo cargados.");
+// NO se cargan datos de ejemplo: la base de producción es la fuente de verdad y
+// el dueño carga su catálogo desde el panel. Reiniciar la base sólo deja las
+// tablas vacías, listas para trabajar.
+console.log("\n✔ Base vaciada. Las tablas quedaron vacías (sin datos de ejemplo).");

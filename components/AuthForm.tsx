@@ -31,7 +31,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No pudimos completar la operación.");
-      router.push(next);
+      // Un gestor entra directo a su panel (salvo que ya viniera a una ruta).
+      const role = data?.user?.role;
+      const target = role === "GESTOR" && next === "/" ? "/gestor" : next;
+      router.push(target);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de red");

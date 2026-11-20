@@ -41,15 +41,8 @@ try {
   run("npx prisma db push --skip-generate");
   console.log("\n✔ Tablas creadas/actualizadas en Supabase.");
 
-  // La base de producción ya tiene los datos reales: el seed NO se corre por
-  // defecto. Sólo se carga en una base nueva y vacía cuando se pide a mano con
-  // SEED=1.
-  if (process.env.SEED === "1") {
-    run("npx tsx prisma/seed.ts");
-    console.log("\n✔ Datos de ejemplo cargados (SEED=1).");
-  } else {
-    console.log("• Sin datos de ejemplo: se conserva lo que ya hay en la base.");
-  }
+  // La base de producción ya tiene los datos reales: NUNCA se corre el seed.
+  console.log("• Sin datos de ejemplo: se conserva lo que ya hay en la base.");
 
   console.log(`
 Listo. Ahora en Vercel (proyecto shido0000s-projects):

@@ -55,7 +55,8 @@ export function Header({ user }: { user: SessionUser }) {
   };
 
   const isAdmin = user?.role === "ADMIN";
-  const accountHref = "/mi-cuenta";
+  const isGestor = user?.role === "GESTOR";
+  const accountHref = isGestor ? "/gestor" : "/mi-cuenta";
   const NAV = user ? [...BASE_NAV, ...ACCOUNT_NAV] : BASE_NAV;
 
   return (
@@ -103,6 +104,14 @@ export function Header({ user }: { user: SessionUser }) {
               className="rounded-full border border-primary/40 px-3 py-1 text-sm text-primary transition-colors duration-200 hover:bg-primary hover:text-on-primary"
             >
               {t.navPanel}
+            </Link>
+          )}
+          {isGestor && (
+            <Link
+              href="/gestor"
+              className="rounded-full border border-primary/40 px-3 py-1 text-sm text-primary transition-colors duration-200 hover:bg-primary hover:text-on-primary"
+            >
+              Mi panel
             </Link>
           )}
         </nav>
@@ -191,6 +200,15 @@ export function Header({ user }: { user: SessionUser }) {
                 className="border-b border-line/60 py-3 text-sm text-primary"
               >
                 {t.navPanel} de administración
+              </Link>
+            )}
+            {isGestor && (
+              <Link
+                href="/gestor"
+                onClick={() => setOpen(false)}
+                className="border-b border-line/60 py-3 text-sm text-primary"
+              >
+                Mi panel de gestor
               </Link>
             )}
             {user ? (

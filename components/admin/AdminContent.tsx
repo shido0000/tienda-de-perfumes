@@ -150,6 +150,12 @@ export function AdminContent({ initial }: { initial: ContentForm }) {
       // El encabezado y la portada se pintan en el servidor: sin refrescar, el
       // logo nuevo no aparecía hasta recargar a mano (parecía que no se guardó).
       router.refresh();
+      // La app instalada guarda en caché el logo/ícono: le pedimos al service
+      // worker que borre esa caché para que tome el ícono nuevo (cambia la URL
+      // con ?v= y se actualiza solo, sin reinstalar).
+      if (typeof navigator !== "undefined" && navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: "REFRESH_ICONS" });
+      }
     } catch (err) {
       toast.error("No se pudo guardar", err instanceof Error ? err.message : "Error de red");
     } finally {

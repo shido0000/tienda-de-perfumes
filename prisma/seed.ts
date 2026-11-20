@@ -187,10 +187,20 @@ const SETTINGS = {
 };
 
 async function main() {
-  // GUARDA: la base de producción es la fuente de verdad y ya tiene los datos
-  // reales del dueño. El seed NO llena la base nunca por su cuenta: sólo corre
-  // si se pide EXPLÍCITAMENTE con SEED=1 sobre una base vacía. Sin SEED=1 no
-  // toca nada, tenga o no datos.
+  // DESACTIVADO A PROPÓSITO. La base de producción es la fuente de verdad y ya
+  // tiene los datos reales del dueño (perfiles, reservas, gestores, etc.).
+  // Cargar datos de ejemplo duplicaría o pisaría información real, así que este
+  // archivo ya no llena la base NUNCA. El catálogo y el resto se administran
+  // desde el panel de Administración. Se deja el archivo sólo como referencia
+  // histórica del esquema.
+  console.log(
+    "Seed desactivado: la tienda usa la base de producción y no se cargan datos de ejemplo.\n" +
+      "Cargá el catálogo y la configuración desde Administración en /admin.",
+  );
+  return;
+}
+
+async function legacySeed() {
   const existingProducts = await prisma.product.count().catch(() => 0);
   const existingUsers = await prisma.user.count().catch(() => 0);
   const hasData = existingProducts > 0 || existingUsers > 0;
@@ -198,8 +208,7 @@ async function main() {
   if (process.env.SEED !== "1") {
     console.log(
       `Seed omitido: no se cargan datos de ejemplo (${existingProducts} productos, ${existingUsers} cuentas en la base).\n` +
-        "La tienda usa la base de producción y sus datos son la fuente de verdad. " +
-        "Sólo para una base de prueba VACÍA: SEED=1 npm run seed",
+        "La tienda usa la base de producción y sus datos son la fuente de verdad. ",
     );
     return;
   }

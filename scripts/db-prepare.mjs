@@ -60,8 +60,8 @@ if (!pushed) {
   process.exit(0);
 }
 
-// El seed NO corre en el build: la base de producción es la fuente de verdad y
-// ya tiene los perfumes reales. Cargar datos de ejemplo en cada deploy los
-// duplicaría o sobrescribiría. Sólo se ejecuta a mano con `npm run db:seed` en
-// una base nueva y vacía.
+// El seed NO corre en el build ni nunca: la base de producción es la fuente de
+// verdad y ya tiene los perfumes y cuentas reales. Cargar datos de ejemplo los
+// duplicaría o sobrescribiría, así que `prisma/seed.ts` termina sin escribir
+// nada y el catálogo se administra desde el panel (/admin).
 process.exit(0);

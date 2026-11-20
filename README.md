@@ -36,46 +36,30 @@ cotizaciones en **Administración → Ajustes**.
 
 ## Cómo entrar como administrador
 
-La cuenta del dueño la crea el seed con los valores de `ADMIN_EMAIL` y
-`ADMIN_PASSWORD`. **Definí esas dos variables en el deploy antes de publicar**
-(la contraseña no se escribe en este archivo a propósito: cualquiera que lea el
-repositorio podría usarla).
+La cuenta del dueño **ya existe en la base de producción**. No se crea ninguna
+cuenta automáticamente: la aplicación no carga datos de ejemplo ni cuentas de
+prueba. Entrá por `/login` con el correo y la contraseña de administrador que ya
+tenés y abrí **Panel** en el menú.
 
-Si no las definís, el seed usa los valores por defecto de `prisma/seed.ts` y
-avisa por consola. Esos valores son de prueba: cambialos antes de abrir la tienda.
+Para cambiar la contraseña, hacelo desde **Administración → Usuarios** (o desde
+tu perfil, en *Mi cuenta*). Si no recordás la contraseña, pedile a otro
+administrador que te la restablezca desde esa misma pantalla.
 
-Entrá por `/login` (hay un enlace “¿Administrás la tienda?” debajo del formulario)
-y después abrí **Panel** en el menú.
+## Base de datos: la de producción es la única fuente de verdad
 
-Para cambiar la contraseña: poné un valor nuevo en `ADMIN_PASSWORD` (variables del
-deploy) y volvé a correr `npm run db:seed`. La cuenta se actualiza (upsert), no se
-duplica, y no hay que borrar datos.
+La aplicación **no carga datos de ejemplo** en ninguna parte del proceso. Ni el
+build, ni el deploy, ni los scripts de mantenimiento tocan los datos: sólo se
+crean o actualizan **tablas** cuando el esquema cambia, nunca filas.
 
-## Deploy: por qué no había productos y no se podía entrar
+- El catálogo, las categorías, los ajustes y las cuentas se administran desde el
+  panel de Administración (`/admin`).
+- Para comprobar que la base responde, abrí `/api/health`: devuelve cuántos
+  productos y cuentas hay. Si el número es 0, la base está vacía y hay que
+  cargar el catálogo desde el panel.
 
-El deploy crea una base Postgres vacía. Si el esquema y los datos iniciales no se
-cargan contra **esa** base, la portada aparece sin productos y no existe ninguna
-cuenta de administrador.
-
-Ahora el build se encarga solo: `npm run build` ejecuta `scripts/db-prepare.mjs`,
-que hace `prisma db push` (crea las tablas) y `prisma db seed` (ajustes, catálogo y
-cuenta de administrador) antes de compilar. Es idempotente: correrlo mil veces deja
-la misma base, sin duplicar perfumes.
-
-Para comprobar el estado después de un deploy, abrí `/api/health`:
-
-```json
-{ "ok": true, "productCount": 8, "adminExists": true }
-```
-
-El seed **no** corre en el build ni en el deploy: la base de producción es la fuente de verdad y ya tiene los datos reales. El seed sólo se ejecuta a mano, y se cancela solo si la base ya tiene productos o cuentas.
-
-Si `productCount` es 0 o `adminExists` es `false`, corré `npm run db:push && npm run db:seed`
-en el entorno donde vive la base (necesita `DATABASE_URL` y, si usás un pooler,
-también `DIRECT_URL` para las migraciones).
-
-Si la base todavía no está disponible, la portada **no se rompe**: muestra un
-estado vacío y el catálogo aparece en cuanto el seed termina.
+Si alguna vez necesitás reiniciar una base **de prueba** desde cero, `npm run
+db:reset` deja las tablas vacías (pide confirmación explícita) y **no** carga
+datos de ejemplo.
 
 ## Datos de ejemplo que hay que reemplazar
 
@@ -247,6 +231,25 @@ se marcan como liquidadas las comisiones más antiguas hasta cubrir el importe.
 venta. Si después se cambia el %, las ventas ya cerradas conservan la comisión
 con la que se cerraron.
 
+### El panel del gestor (`/gestor`)
+
+Cada gestor tiene su propia página de resultados. Entra con su correo y
+contraseña y el sistema lo lleva directo a **Mi panel** (también está el enlace
+en el menú). Ahí ve, sin poder ver los datos de ningún otro gestor:
+
+- **Ganado**, **pendiente de cobro** y **lo ya pagado** (en total).
+- **Personas que entraron por su enlace**: se cuentan navegadores distintos, no
+  recargas de página (una misma persona se cuenta una vez al día).
+- **Personas que compraron por su enlace** y el porcentaje de conversión.
+- **Gráfico de personas por día** (últimos 30 días) y **ganancia por mes**
+  (últimos 6 meses).
+- **Perfumes más vendidos por su enlace** y las **últimas ventas** con la
+  comisión de cada una y si ya está pagada.
+- Su **enlace copiable** (`/r/CODIGO`) con un botón para copiar.
+
+Los números de dinero salen del mismo cálculo que usa Administración →
+Gestores, así que el panel del gestor y el del dueño nunca se contradicen.
+
 ## Avisos automáticos (envío solo, sin tocar nada)
 
 Los dos avisos de venta ya **se envían solos**, no hace falta que nadie abra
@@ -391,6 +394,6 @@ curl https://tu-dominio.com/api/health
 # { "ok": true, "productCount": 8, "adminExists": true }
 ```
 
-Si `productCount` es 0, la base de producción quedó vacía: corré
-`npm run db:push && npm run db:seed` con el `DATABASE_URL` de producción.
+Si `productCount` es 0, la base de producción quedó vacía: cargá el catálogo desde
+**Administración** (`/admin`). El seed ya no existe como forma de llenar la base.
 

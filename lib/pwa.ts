@@ -56,6 +56,45 @@ function subscribe(fn: () => void) {
   };
 }
 
+/**
+ * Ícono de la app instalada.
+ *
+ * El administrador cambia el logo desde el panel y ese logo es el ícono de la
+ * app. Si la web ya está instalada, el sistema operativo NO vuelve a mirar el
+ * manifiesto por su cuenta: hay que avisarle. Guardamos el `v` (hash del logo)
+ * que vio cada dispositivo; cuando cambia, se pide al navegador que relea el
+ * manifiesto y se recarga una vez, así queda el ícono nuevo sin reinstalar.
+ */
+const ICON_VERSION_KEY = "mistmood_icon_version";
+
+async function manifestIconVersion(): Promise<string> {
+  const res = await fetch(`/manifest.webmanifest?t=${Date.now()}`, { cache: "no-store" });
+  if (!res.ok) return "";
+  const data = (await res.json()) as { icons?: { src?: string }[] };
+  const src = (data.icons ?? []).map((i) => i?.src ?? "").find(Boolean) ?? "";
+  const m = /[?&]v=([^&]+)/.exec(src);
+  return m ? m[1] : "";
+}
+
+/** Revisa si el logo cambió y, si la app está instalada, fuerza el ícono nuevo. */
+export async function syncInstalledIcon(): Promise<void> {
+  try {
+    const version = await manifestIconVersion();
+    if (!version) return;
+    const seen = localStorage.getItem(ICON_VERSION_KEY);
+    if (seen === version) return;
+    localStorage.setItem(ICON_VERSION_KEY, version);
+    // Primera visita del dispositivo: sólo recordamos la versión.
+    if (!seen) return;
+    // La app instalada necesita que el navegador vuelva a leer el manifiesto.
+    const reg = await navigator.serviceWorker?.getRegistration();
+    await reg?.update().catch(() => {});
+    if (isStandalone()) window.location.reload();
+  } catch {
+    /* sin red o sin manifiesto: la app sigue funcionando igual */
+  }
+}
+
 export function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   return (
@@ -132,6 +171,15 @@ if (typeof window !== "undefined") {
 
   const ios = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
   if (ios) emit({ iosHint: !isStandalone() });
+
+  // El ícono de la app instalada sigue al logo que el administrador sube.
+  // Se revisa al cargar y cada vez que el usuario vuelve a la pestaña (dentro
+  // de la app instalada, "volver" es abrirla de nuevo).
+  if (document.readyState === "complete") void syncInstalledIcon();
+  else window.addEventListener("load", () => void syncInstalledIcon(), { once: true });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void syncInstalledIcon();
+  });
 
   if ("serviceWorker" in navigator) {
     const register = async () => {

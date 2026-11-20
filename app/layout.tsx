@@ -13,11 +13,12 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { ManagerPriceNotice } from "@/components/ManagerPriceNotice";
+import { ManagerVisitTracker } from "@/components/ManagerVisitTracker";
 import { getRefManager } from "@/lib/manager";
 import { ChatWidget } from "@/components/ChatWidget";
 import { storeJsonLd } from "@/lib/structured-data";
 import { getSiteUrl } from "@/lib/site-url";
-import { appleTouchIcon } from "@/lib/pwa-icons";
+import { appleTouchIcon, logoSrc, logoVersion } from "@/lib/pwa-icons";
 
 /**
  * Metadatos tomados de los ajustes de la tienda: el título, la descripción y
@@ -29,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // El logo vive en la base como data URL (base64). Referenciarlo así dentro
   // del <head> obligaba a repetir el base64 en cada página; /api/logo lo sirve
   // aparte y cacheable. Si no hay logo, cae al icono por defecto.
-  const icon = s.logoUrl ? (s.logoUrl.startsWith("data:") ? "/api/logo" : s.logoUrl) : "/icons/icon.svg";
+  const icon = s.logoUrl ? logoSrc(s.logoUrl) : "/icons/icon.svg";
 
   return {
     metadataBase: base ? new URL(base) : undefined,
@@ -40,7 +41,11 @@ export async function generateMetadata(): Promise<Metadata> {
     description: s.seoDescription,
     keywords: s.seoKeywords.split(",").map((k) => k.trim()).filter(Boolean),
     applicationName: s.brand,
-    manifest: "/manifest.webmanifest",
+    // El manifiesto se referencia versionado por el logo: cuando el dueño sube
+    // un ícono distinto cambia esta URL, el navegador vuelve a leer el
+    // manifiesto y actualiza el ícono de la app instalada SIN duplicarla
+    // (el `id` del manifiesto es fijo: "/").
+    manifest: `/manifest.webmanifest?v=${logoVersion(s.logoUrl)}`,
     appleWebApp: {
       capable: true,
       title: s.brand,
@@ -150,6 +155,7 @@ export default async function RootLayout({
                 {manager ? (
                   <ManagerPriceNotice managerName={manager.name ?? null} />
                 ) : null}
+                {manager ? <ManagerVisitTracker /> : null}
                 <div className="flex min-h-screen flex-col">
                   <Header user={user} />
                   <main className="flex-1">{children}</main>

@@ -38,8 +38,33 @@ model User {
   pushSubs     PushSubscription[]
   managedSales Reservation[]       @relation("ReservationManager")
   payouts      ManagerPayout[]     @relation("ManagerPayouts")
+  visits       ManagerVisit[]      @relation("ManagerVisits")
 
   @@index([managerCode])
+}
+
+/// Una vez por visitante y por día: quién entró a la tienda por el enlace de
+/// un gestor. Sirve para que el gestor vea cuánta gente le llegó por su enlace
+/// y cuánta terminó comprando.
+model ManagerVisit {
+  id          String   @id @default(cuid())
+  managerId   String
+  /// Identificador anónimo del navegador (cookie mm_vid). No es la cuenta.
+  visitorId   String
+  /// Día local en formato YYYY-MM-DD: dedupe de la visita del día.
+  day         String
+  /// Cuántas veces volvió ese navegador ese día.
+  hits        Int      @default(1)
+  /// Cliente con sesión iniciada, si lo hubo.
+  userId      String?
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  manager User @relation("ManagerVisits", fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, visitorId, day])
+  @@index([managerId, createdAt])
+  @@index([managerId, userId])
 }
 
 model Category {

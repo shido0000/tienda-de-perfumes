@@ -9,42 +9,38 @@ export const dynamic = "force-dynamic";
  *
  * Sale de los ajustes de la tienda, así que el nombre, los colores y el logo
  * que el administrador sube se reflejan en la app instalada en el móvil.
+ *
+ * ACTUALIZACIÓN: el manifiesto se sirve sin caché (no-store) para que el
+ * sistema operativo lo vuelva a leer. Cada ícono lleva `?v=<hash del logo>`, así
+ * que cuando el dueño cambia el logo, el ícono de la app instalada cambia solo.
  */
 export async function GET() {
   const s = await getSettings();
-  const icon = s.logoUrl ?? null;
-
-  // El logo que el dueño subió en el panel es el ícono de la app instalada:
-  // va primero en el manifest. Si no hay logo, quedan los íconos por defecto.
-  const icons = manifestIcons(icon);
+  const icons = manifestIcons(s.logoUrl);
 
   const manifest = {
-    id: "/",
-    name: `${s.brand} — ${s.tagline || "Perfumería"}`,
-    short_name: s.brand.length > 12 ? s.brand.slice(0, 12) : s.brand,
-    description: s.seoDescription,
-    start_url: "/?source=pwa",
+    name: s.brand || "Tienda",
+    short_name: (s.brand || "Tienda").slice(0, 15),
+    description: s.seoDescription || s.tagline || "",
+    start_url: "/",
     scope: "/",
     display: "standalone",
-    display_override: ["standalone", "minimal-ui"],
     orientation: "portrait",
-    background_color: "#f7f4ee",
-    theme_color: "#6e1f2c",
+    background_color: "#f6f1e6",
+    theme_color: "#6b1f2a",
     lang: "es",
-    dir: "ltr",
-    categories: ["shopping", "lifestyle"],
+    // El id es fijo ("/"): cambiarlo haría que el navegador trate la web como
+    // OTRA app y duplique el ícono instalado. El refresco del ícono lo resuelve
+    // la URL versionada de cada ícono (?v=<hash del logo>).
+    id: "/",
     icons,
-    shortcuts: [
-      { name: "Catálogo", short_name: "Catálogo", url: "/catalogo" },
-      { name: "Mi carrito", short_name: "Carrito", url: "/carrito" },
-      { name: "Mis reservas", short_name: "Reservas", url: "/mis-reservas" },
-    ],
   };
 
-  return NextResponse.json(manifest, {
+  return new NextResponse(JSON.stringify(manifest), {
+    status: 200,
     headers: {
-      "Content-Type": "application/manifest+json",
-      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "application/manifest+json; charset=utf-8",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   });
 }

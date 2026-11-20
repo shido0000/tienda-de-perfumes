@@ -2,6 +2,8 @@
 // como default provoca "does not contain a default export" en el build.
 import * as webpush from "web-push";
 import { prisma } from "./db";
+import { getSettings } from "./settings";
+import { logoSrc } from "./pwa-icons";
 
 /**
  * Web Push para avisar a los administradores de una reserva nueva.
@@ -67,6 +69,7 @@ export type PushPayload = {
   body: string;
   url?: string;
   tag?: string;
+  icon?: string;
 };
 
 /**
@@ -74,8 +77,7 @@ export type PushPayload = {
  * administradores. Las suscripciones muertas (404/410) se borran para que la
  * lista no crezca con basura.
  */
-export async function notifyAdmins(payload: PushPayload): Promise<void> {
-  try {
+export async function notifyAdmins(payload: PushPayload): Promise<void> {  try {
     const keys = await getVapidKeys();
     if (!keys) return;
     configure(keys);
@@ -86,7 +88,17 @@ export async function notifyAdmins(payload: PushPayload): Promise<void> {
     });
     if (!subs.length) return;
 
-    const body = JSON.stringify(payload);
+    // La notificación del móvil muestra el logo que el dueño subió (si hay).
+    let icon = payload.icon;
+    if (!icon) {
+      try {
+        const settings = await getSettings();
+        icon = settings.logoUrl ? logoSrc(settings.logoUrl) : undefined;
+      } catch {
+        icon = undefined;
+      }
+    }
+    const body = JSON.stringify(icon ? { ...payload, icon } : payload);
     await Promise.all(
       subs.map(async (sub) => {
         try {

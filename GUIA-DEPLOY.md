@@ -110,8 +110,8 @@ se escribe `Abc.1%2A%2A`.
 | `WHATSAPP_TOKEN` / `WHATSAPP_PHONE_ID` | (opcional) envío por WhatsApp |
 
 Después del primer deploy, el `postinstall` genera el cliente de Prisma. Si la
-base está vacía, corré una vez `npm run db:push` y `npm run db:seed` apuntando a
-esas variables (o cargá los productos desde el panel).
+base está vacía, **cargá el catálogo desde el panel** (`/admin`): la app no carga
+datos de ejemplo en ningún paso.
 
 ### Cómo publicar (la base ya está lista; falta solo conectar Vercel)
 
@@ -175,9 +175,9 @@ Cada vez que publicás, Vercel:
 
 1. crea (o reutiliza) una base Postgres del proyecto,
 2. corre `npm install` y `prisma generate`,
-3. corre `scripts/db-prepare.mjs`, que hace `prisma db push` (crea las tablas que
-   falten) y `prisma db seed` (ajustes, categorías, catálogo y cuenta de
-   administrador) **sin duplicar nada**,
+3. corre `scripts/db-prepare.mjs`, que hace `prisma db push` (crea **sólo** las
+   tablas que falten y nunca borra datos). **No carga filas de ejemplo**: la base
+   de producción es la fuente de verdad y sus datos no se tocan,
 4. compila la app.
 
 Es idempotente: podés publicar cien veces y el catálogo no se duplica ni se
@@ -216,8 +216,8 @@ TRUNCATE TABLE "ReservationItem", "Reservation", "CartItem", "WishlistItem",
 RESTART IDENTITY CASCADE;
 ```
 
-3. Publicá con **Redeploy**: el seed vuelve a cargar el catálogo y la cuenta de
-   administrador.
+3. Publicá con **Redeploy**: las tablas se recrean vacías y el catálogo se vuelve
+   a cargar desde el panel de Administración.
 
 **Opción C — desde acá, apuntando a la base de producción.**
 
@@ -231,7 +231,8 @@ npm run db:reset
 ```
 
 `npm run db:reset` **no** borra el esquema de Postgres ni la base: borra las
-tablas una por una, las vuelve a crear con el esquema actual y corre el seed.
+tablas una por una, las vuelve a crear con el esquema actual y **deja las tablas
+vacías** (no carga datos de ejemplo).
 (Este detalle importa: `prisma db push --force-reset` sí borraba el esquema
 entero y dejaba la base inutilizable, porque el usuario de la app no tiene
 permiso para recrearlo. Por eso ese comando ya no se usa.)
@@ -261,9 +262,9 @@ curl https://tu-dominio.com/api/health
 }
 ```
 
-Si `productCount` es 0, la base quedó vacía: falta correr el seed en el entorno
-donde vive esa base. Si `adminExists` es `false`, lo mismo: el seed no llegó a
-correr. Dejá esta llamada a mano y revisala **después de cada publicación**.
+Si `productCount` es 0, la base quedó vacía: hay que cargar el catálogo desde
+**Administración** (`/admin`). La app no carga datos de ejemplo en ningún paso,
+así que una base vacía se llena desde el panel, nunca con un seed.
 
 ### Antes de cada cambio grande: copia de la base
 
@@ -278,11 +279,10 @@ restauración manual antes de tocar el esquema.
 
 ### La cuenta de administrador del deploy
 
-El seed crea el dueño con `ADMIN_EMAIL` y `ADMIN_PASSWORD` si esas variables
-existen. **Definilas en las variables del deploy** (no en el código): si faltan,
-la cuenta queda con el correo y la contraseña por defecto que están escritos en
-el repositorio, y cualquiera que los lea puede entrar al panel. Después de
-cambiarlas, hacé Redeploy y entrá con las nuevas.
+La cuenta del dueño **ya existe en la base de producción** y la app no crea
+cuentas automáticamente. Para crear otra cuenta de administrador, entrá al panel
+con la que ya tenés y usá **Administración → Usuarios**. Para cambiar una
+contraseña, usá **Mi cuenta → Perfil**.
 
 ### El asistente IA
 
@@ -427,5 +427,5 @@ Recomendaciones al terminar:
 | `Failed to fetch` | El proyecto subía `node_modules` y `.next` (900 MB) y la subida se cortaba | Ya resuelto con `.gitignore` y `.vercelignore` |
 | `este cambio en el esquema destruiría datos existentes` | El esquema ya no coincide con las columnas reales de la base | Alinear el esquema a la base o vaciar las tablas (sección 3) |
 | `no schema has been selected to create in` | Se borró el esquema de Postgres, no solo las tablas | Pedir que se reprovisione la base; nunca usar `--force-reset` |
-| La web abre pero sin productos | La base del deploy está vacía | El seed ya **no** corre solo (protege los datos de producción). Sólo en una base vacía: `npm run db:push && npm run db:seed` |
-| No puedo entrar como administrador | Las variables `ADMIN_EMAIL` / `ADMIN_PASSWORD` no están definidas en el deploy | Definirlas y hacer Redeploy; después correr `npm run db:seed` para que la cuenta se actualice |
+| La web abre pero sin productos | La base del deploy está vacía | La app ya **no** carga datos de ejemplo (protege los datos de producción). Cargá el catálogo desde **Administración → Productos** |
+| No puedo entrar como administrador | La base no tiene esa cuenta o la contraseña no coincide | La app no crea cuentas sola; pedile a otro administrador que la restablezca desde **Administración → Usuarios** |

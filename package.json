@@ -8,8 +8,6 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "deploy:supabase": "node scripts/deploy-supabase.mjs",
-    "db:seed": "prisma db seed",
-    "seed": "tsx prisma/seed.ts",
     "test:regression": "node scripts/regression.mjs",
     "db:reset": "node scripts/reset-db.mjs"
   },
@@ -25,6 +23,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-leaflet": "^4.2.1",
+    "sharp": "^0.35.5",
     "web-push": "^4.0.0",
     "zod": "3.23.8"
   },
@@ -45,6 +44,6 @@
     "typescript": "5.5.4"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node -e \"console.log('Seed desactivado: la base de producción ya tiene los datos reales. No se cargan datos de ejemplo.')\""
   }
 }

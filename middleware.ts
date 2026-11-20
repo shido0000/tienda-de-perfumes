@@ -20,7 +20,7 @@ import { REF_COOKIE } from "@/lib/manager-constants";
  * `verifyTokenEdge` usa jose porque el middleware corre en el EDGE runtime,
  * donde jsonwebtoken no tiene crypto de Node.
  */
-const PROTECTED = ["/mis-reservas", "/deseos", "/checkout", "/admin", "/mi-cuenta"];
+const PROTECTED = ["/mis-reservas", "/deseos", "/checkout", "/admin", "/mi-cuenta", "/gestor"];
 
 /**
  * Corre en todas las páginas (no en /api, /_next ni estáticos) porque el enlace
