@@ -67,6 +67,60 @@ model ManagerVisit {
   @@index([managerId, userId])
 }
 
+/// Visita a la tienda, venga por donde venga.
+///
+/// Una fila por navegador y por día en el total (`scope = "ALL"`) y otra por
+/// navegador, día y gestor cuando entró por un enlace de gestor
+/// (`scope = "MANAGER"`). Así el panel puede contar visitantes distintos sin
+/// inflarse con recargas, y además separar cuántas entradas fueron por un
+/// gestor y cuántas directas a la tienda.
+model SiteVisit {
+  id         String   @id @default(cuid())
+  /// Identificador anónimo del navegador (cookie mm_vid). No es la cuenta.
+  visitorId  String
+  /// Día local en formato YYYY-MM-DD (dedupe diario).
+  day        String
+  /// ALL = todos los ingresos del día | MANAGER = ingreso por el enlace de un gestor.
+  scope      String   @default("ALL")
+  /// Gestor por cuyo enlace entró, si corresponde.
+  managerId  String?
+  /// Cliente con sesión iniciada, si lo había.
+  userId     String?
+  /// Primera ruta que abrió ese día.
+  firstPath  String?
+  hits       Int      @default(1)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@unique([visitorId, day, scope])
+  @@index([day])
+  @@index([managerId])
+}
+
+/// Cada vez que alguien agrega un producto al carrito, quede o no registrado.
+/// Sirve para ver en el panel quién está armando un carrito, por qué canal
+/// llegó (tienda directa o enlace de un gestor) y qué producto eligió.
+model CartAdd {
+  id          String   @id @default(cuid())
+  /// Navegador que lo agregó (cookie mm_vid). Puede no haber cuenta.
+  visitorId   String
+  userId      String?
+  managerId   String?
+  /// MANAGER si vino por el enlace de un gestor | DIRECT si entró a la tienda.
+  source      String   @default("DIRECT")
+  productId   String?
+  productName String
+  quantity    Int      @default(1)
+  /// Precio unitario tal como lo vio el cliente.
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  currency    String   @default("ARS")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([managerId])
+  @@index([visitorId])
+}
+
 model Category {
   id        String   @id @default(cuid())
   name      String   @unique

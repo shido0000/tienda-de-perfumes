@@ -12,8 +12,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { NavigationProgress } from "@/components/NavigationProgress";
-import { ManagerPriceNotice } from "@/components/ManagerPriceNotice";
 import { ManagerVisitTracker } from "@/components/ManagerVisitTracker";
+import { VisitTracker } from "@/components/VisitTracker";
 import { getRefManager } from "@/lib/manager";
 import { ChatWidget } from "@/components/ChatWidget";
 import { storeJsonLd } from "@/lib/structured-data";
@@ -152,10 +152,8 @@ export default async function RootLayout({
             <ConfirmProvider>
               <CartProvider>
                 <NavigationProgress />
-                {manager ? (
-                  <ManagerPriceNotice managerName={manager.name ?? null} />
-                ) : null}
                 {manager ? <ManagerVisitTracker /> : null}
+                <VisitTracker />
                 <div className="flex min-h-screen flex-col">
                   <Header user={user} />
                   <main className="flex-1">{children}</main>

@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 export type Currency = { code: string; symbol: string; rate: number; label: string };
 
 import type { SiteTexts } from "./site-texts";
+import { trackUrl } from "./manager-client";
 
 export type StoreSettings = {
   brand: string;
@@ -159,8 +160,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [signedIn],
   );
 
+  /**
+   * Avisa al servidor que alguien agregó algo al carrito, para que el panel
+   * pueda mostrar los carritos que se están armando y por qué canal llegó la
+   * persona (tienda directa o enlace de un gestor). Un fallo aquí no afecta al
+   * carrito: es solo una anotación de audiencia.
+   */
+  const trackAdd = useCallback((line: Omit<CartLine, "quantity">, quantity: number) => {
+    if (!(quantity > 0)) return;
+    try {
+      fetch(trackUrl(), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: line.productId,
+          productName: line.name,
+          quantity,
+          unitPrice: Number(line.price) || 0,
+          currency: line.currency || "ARS",
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* nunca interrumpe el carrito */
+    }
+  }, []);
+
   const add: CartContextValue["add"] = useCallback(
     (line, quantity = 1) => {
+      trackAdd(line, quantity);
       setLines((prev) => {
         const existing = prev.find((l) => l.productId === line.productId);
         if (existing) {
@@ -178,7 +206,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return [...prev, { ...line, quantity: nextQty }];
       });
     },
-    [sync],
+    [sync, trackAdd],
   );
 
   const setQuantity: CartContextValue["setQuantity"] = useCallback(

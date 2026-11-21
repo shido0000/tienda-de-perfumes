@@ -20,6 +20,7 @@ import {
   Coins,
   Star,
   UsersThree,
+  Pulse,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import { AdminProducts } from "./AdminProducts";
@@ -42,6 +43,7 @@ import { AdminAlerts } from "./AdminAlerts";
 import { AdminNotifications } from "./AdminNotifications";
 import { AdminReviews } from "./AdminReviews";
 import { AdminCashClose } from "./AdminCashClose";
+import { AdminAudience } from "./AdminAudience";
 import type { Currency } from "@/lib/currency";
 import type { BannerDTO, CategoryDTO, ComboDTO, ProductDTO, ReservationDTO } from "@/lib/types";
 
@@ -58,6 +60,7 @@ type Tab =
   | "cashclose"
   | "users"
   | "managers"
+  | "audience"
   | "campaigns"
   | "templates"
   | "content"
@@ -78,6 +81,7 @@ const ALL_TABS: Tab[] = [
   "cashclose",
   "users",
   "managers",
+  "audience",
   "campaigns",
   "templates",
   "content",
@@ -228,6 +232,7 @@ export function AdminPanel({
     { id: "cashclose", label: "Cierre de caja", icon: Coins },
     { id: "users", label: "Usuarios", icon: Users },
     { id: "managers", label: "Gestores", icon: UsersThree },
+    { id: "audience", label: "Audiencia", icon: Pulse },
     { id: "campaigns", label: "Campañas", icon: ChatCircleText },
     { id: "templates", label: "Plantillas", icon: PaperPlaneTilt },
     { id: "content", label: "Contenido", icon: PencilSimple },
@@ -310,6 +315,7 @@ export function AdminPanel({
         {tab === "managers" && (
           <AdminManagers currencies={settings.currencies} prefill={managerPrefill} />
         )}
+        {tab === "audience" && <AdminAudience currencies={settings.currencies} />}
         {tab === "campaigns" && <AdminCampaigns />}
         {tab === "templates" && <AdminCampaignTemplates />}
         {tab === "content" && <AdminContent initial={content} />}
