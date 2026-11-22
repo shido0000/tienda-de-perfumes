@@ -9,7 +9,11 @@
     "db:push": "prisma db push",
     "deploy:supabase": "node scripts/deploy-supabase.mjs",
     "test:regression": "node scripts/regression.mjs",
-    "db:reset": "node scripts/reset-db.mjs"
+    "db:reset": "node scripts/reset-db.mjs",
+    "build:worker": "opennextjs-cloudflare build",
+    "preview:worker": "npm run build:worker && opennextjs-cloudflare preview",
+    "deploy:worker": "npm run build:worker && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",
@@ -41,7 +45,9 @@
     "prisma": "5.18.0",
     "tailwindcss": "3.4.10",
     "tsx": "^4.19.2",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "@opennextjs/cloudflare": "latest",
+    "wrangler": "latest"
   },
   "prisma": {
     "seed": "node -e \"console.log('Seed desactivado: la base de producción ya tiene los datos reales. No se cargan datos de ejemplo.')\""
