@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Heart, Bag } from "@phosphor-icons/react/dist/ssr";
 import { useCart } from "@/lib/cart-context";
 import { usePrice } from "@/lib/use-price";
+import { useSettings } from "@/lib/settings-context";
 import { GENDER_LABEL, type ProductDTO } from "@/lib/types";
 import { SafeImage } from "@/components/SafeImage";
 
@@ -20,7 +21,8 @@ export function ProductCard({
 }) {
   const t = useSiteTexts();
   const { add } = useCart();
-  const { price } = usePrice();
+  const { price, priceSecond } = usePrice();
+  const { settings } = useSettings();
   const [saved, setSaved] = useState(initialSaved);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export function ProductCard({
   };
 
   const soldOut = product.stock !== null && product.stock <= 0;
+  const secondPrice = priceSecond(product.price, product.currency);
   const rebaja =
     product.compareAtPrice && product.compareAtPrice > product.price
       ? product.compareAtPrice - product.price
@@ -129,9 +132,18 @@ export function ProductCard({
                 {price(product.compareAtPrice as number, product.currency)}
               </span>
             )}
+            {secondPrice && (
+              <span className="w-full text-[11px] tabular-nums text-muted">{secondPrice}</span>
+            )}
           </span>
           <span className="text-[11px] text-muted">
-            {soldOut ? t.pdSoldOut : product.stock !== null ? `${product.stock} ${t.pdStockAvailable}` : product.category}
+            {soldOut
+              ? t.pdSoldOut
+              : product.stock !== null && !settings.showStock
+                ? t.pdAvailable
+                : product.stock !== null
+                  ? `${product.stock} ${t.pdStockAvailable}`
+                  : product.category}
           </span>
         </div>
         {/* Altura fija para el sello de rebaja: sin ella, sólo las tarjetas en

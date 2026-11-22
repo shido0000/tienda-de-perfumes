@@ -21,6 +21,9 @@ type SettingsForm = {
   maxRadius: number;
   baseCurrency: string;
   displayCurrency: string;
+  showSecondCurrency: boolean;
+  secondCurrency: string;
+  showStock: boolean;
   notificationPhones: string[];
   currencies: Currency[];
 };
@@ -278,6 +281,65 @@ export function AdminSettings({ initial }: { initial: SettingsForm }) {
             ))}
           </select>
         </Field>
+
+        <div className="rounded-card border border-line bg-bg/60 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={form.showSecondCurrency}
+              onChange={(e) => set("showSecondCurrency", e.target.checked)}
+              className="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">
+                Mostrar el precio en dos monedas
+              </span>
+              <span className="block text-xs text-muted">
+                Si está marcado, junto al precio principal aparece el equivalente en la
+                segunda moneda. Si lo desmarcás, el cliente ve solo una moneda.
+              </span>
+            </span>
+          </label>
+          <div className="mt-4 max-w-xs">
+            <Field label="Segunda moneda que ve el cliente">
+              <select
+                value={form.secondCurrency}
+                onChange={(e) => set("secondCurrency", e.target.value)}
+                disabled={!form.showSecondCurrency}
+                className={`${inputClass} mt-1.5 disabled:opacity-50`}
+              >
+                {form.currencies
+                  .filter((c) => c.code !== form.displayCurrency)
+                  .map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.label}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+          </div>
+        </div>
+
+        <div className="rounded-card border border-line bg-bg/60 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={form.showStock}
+              onChange={(e) => set("showStock", e.target.checked)}
+              className="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">
+                Mostrar al cliente cuántas unidades hay
+              </span>
+              <span className="block text-xs text-muted">
+                Si está marcado, el cliente ve el número exacto de unidades disponibles.
+                Si lo desmarcás, solo sabe que está disponible (o que está agotado),
+                nunca la cantidad.
+              </span>
+            </span>
+          </label>
+        </div>
 
         <RateHistory />
       </section>

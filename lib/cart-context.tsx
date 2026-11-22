@@ -21,6 +21,12 @@ export type StoreSettings = {
   maxRadius: number;
   baseCurrency: string;
   displayCurrency: string;
+  /** Si está activo, el cliente ve además el precio en la segunda moneda. */
+  showSecondCurrency?: boolean;
+  /** Código de la segunda moneda (p. ej. USD). */
+  secondCurrency?: string;
+  /** Si está activo, el cliente ve cuántas unidades quedan. */
+  showStock?: boolean;
   currencies: Currency[];
   /** Opcional: números que reciben el aviso de reservas (solo administración los usa). */
   notificationPhones?: string[];

@@ -183,6 +183,9 @@ export default async function AdminPage() {
             maxRadius: settings.maxRadius,
             baseCurrency: settings.baseCurrency,
             displayCurrency: settings.displayCurrency,
+            showSecondCurrency: settings.showSecondCurrency,
+            secondCurrency: settings.secondCurrency,
+            showStock: settings.showStock,
             currencies: settings.currencies,
             notificationPhones: settings.notificationPhones,
           }}

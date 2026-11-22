@@ -131,6 +131,13 @@ export function CatalogGrid({
   const busy = loading || isPending;
   const filtered = activeFilters > 0 || query.trim().length > 0;
 
+  // Los perfumes agotados no se mezclan con los disponibles: van a una
+  // sección aparte ("Próximamente") para que el cliente vea primero lo que
+  // puede reservar hoy.
+  const isSoldOut = (p: ProductDTO) => p.stock !== null && p.stock <= 0;
+  const available = products.filter((p) => !isSoldOut(p));
+  const comingSoon = products.filter(isSoldOut);
+
   const control =
     "rounded-control border border-line bg-surface px-3 py-2.5 text-sm text-ink transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
@@ -367,20 +374,54 @@ export function CatalogGrid({
         )
       ) : (
         <>
-          <p className="mt-6 text-xs text-muted">
-            {products.length} {products.length === 1 ? t.countProductSingular : t.countProductPlural}
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((p, i) => (
-              <Reveal key={p.id} delay={(i % 3) * 90} className="h-full">
-                <ProductCard
-                  product={p}
-                  initialSaved={wishlistIds.includes(p.id)}
-                  signedIn={signedIn}
-                />
-              </Reveal>
-            ))}
-          </div>
+          {available.length > 0 ? (
+            <>
+              <p className="mt-6 text-xs text-muted">
+                {available.length} {available.length === 1 ? t.countProductSingular : t.countProductPlural}
+              </p>
+              <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+                {available.map((p) => (
+                  <div key={p.id} className="h-full">
+                    <ProductCard
+                      product={p}
+                      initialSaved={wishlistIds.includes(p.id)}
+                      signedIn={signedIn}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="mt-10 rounded-card border border-dashed border-line px-6 py-10 text-center">
+              <p className="font-display text-h3 text-ink">{t.emptySearchTitle}</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
+                Ahora mismo no hay unidades de lo que buscás. Mirá abajo lo que está por
+                llegar, o escribinos por WhatsApp y te avisamos.
+              </p>
+            </div>
+          )}
+
+          {comingSoon.length > 0 && (
+            <section aria-labelledby="proximamente" className="mt-20 border-t border-line pt-12">
+              <h3 id="proximamente" className="text-h2 text-ink">
+                {t.comingSoonTitle}
+              </h3>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+                {t.comingSoonIntro}
+              </p>
+              <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+                {comingSoon.map((p, i) => (
+                  <Reveal key={p.id} delay={(i % 3) * 90} className="h-full">
+                    <ProductCard
+                      product={p}
+                      initialSaved={wishlistIds.includes(p.id)}
+                      signedIn={signedIn}
+                    />
+                  </Reveal>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
 

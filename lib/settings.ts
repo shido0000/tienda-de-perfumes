@@ -18,6 +18,12 @@ export type SettingsDTO = {
   baseCurrency: string;
   /** Moneda en la que el cliente ve TODOS los precios. La fija el administrador. */
   displayCurrency: string;
+  /** Si está activo, el cliente ve además el precio en la segunda moneda. */
+  showSecondCurrency: boolean;
+  /** Código de esa segunda moneda (p. ej. USD). */
+  secondCurrency: string;
+  /** Si está activo, el cliente ve cuántas unidades quedan; si no, solo "disponible". */
+  showStock: boolean;
   currencies: Currency[];
   /** Números de WhatsApp que reciben el aviso de cada reserva nueva. */
   notificationPhones: string[];
@@ -71,6 +77,9 @@ export const FALLBACK_SETTINGS: SettingsDTO = {
   maxRadius: 20,
   baseCurrency: BASE_CURRENCY,
   displayCurrency: BASE_CURRENCY,
+  showSecondCurrency: false,
+  secondCurrency: "USD",
+  showStock: true,
   currencies: DEFAULT_CURRENCIES,
   notificationPhones: [],
   logoUrl: null,
@@ -162,6 +171,11 @@ export async function getSettings(): Promise<SettingsDTO> {
       maxRadius: row.maxRadius,
       baseCurrency: row.baseCurrency || BASE_CURRENCY,
       displayCurrency,
+      showSecondCurrency: row.showSecondCurrency ?? false,
+      secondCurrency: currencies.some((c) => c.code === row.secondCurrency)
+        ? row.secondCurrency
+        : "USD",
+      showStock: row.showStock ?? true,
       currencies,
       notificationPhones: parsePhones(row.notificationPhones),
       logoUrl: row.logoUrl?.trim() ? row.logoUrl : null,

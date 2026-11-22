@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ArrowLeft, Bag, Heart, Clock, SunHorizon, User } from "@phosphor-icons/react/dist/ssr";
 import { useCart } from "@/lib/cart-context";
 import { usePrice } from "@/lib/use-price";
+import { useSettings } from "@/lib/settings-context";
 import { GENDER_LABEL, OCCASION_LABEL, type ProductDTO } from "@/lib/types";
 import { StockAlertForm } from "./StockAlertForm";
 import { SafeImage } from "@/components/SafeImage";
@@ -25,7 +26,8 @@ export function ProductDetail({
 }) {
   const t = useSiteTexts();
   const { add } = useCart();
-  const { price } = usePrice();
+  const { price, priceSecond } = usePrice();
+  const { settings } = useSettings();
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [saved, setSaved] = useState(initialSaved);
@@ -105,6 +107,11 @@ export function ProductDetail({
           <p className="mt-4 font-display text-2xl tabular-nums text-primary">
             {price(product.price, product.currency)}
           </p>
+          {priceSecond(product.price, product.currency) && (
+            <p className="mt-0.5 text-sm tabular-nums text-muted">
+              {priceSecond(product.price, product.currency)}
+            </p>
+          )}
           <p className="mt-1 text-xs text-muted">
             Precio original en {product.currency}. La conversión se fija al confirmar la reserva.
           </p>
@@ -213,7 +220,9 @@ export function ProductDetail({
           <div className="mt-10 border-t border-line pt-5 text-xs leading-relaxed text-muted">
             <p>
               {product.stock !== null
-                ? `Stock disponible: ${product.stock} unidades.`
+                ? settings.showStock
+                  ? `Stock disponible: ${product.stock} unidades.`
+                  : "Disponible. La cantidad exacta la confirma la tienda al preparar la reserva."
                 : "Stock a confirmar por la tienda."}
             </p>
             <p className="mt-1">

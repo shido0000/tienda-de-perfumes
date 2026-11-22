@@ -323,6 +323,11 @@ model StoreSettings {
   maxRadius          Float   @default(15)
   baseCurrency       String  @default("CUP")
   displayCurrency    String  @default("CUP") // moneda en la que se muestran los precios al cliente
+  /// Si es true, el cliente ve además el precio en esta segunda moneda (p. ej. USD).
+  showSecondCurrency Boolean @default(false)
+  secondCurrency     String  @default("USD")
+  /// Si es true, el cliente ve cuántas unidades hay; si no, solo "disponible".
+  showStock          Boolean @default(true)
   notificationPhones Json    @default("[]") // números de WhatsApp que reciben avisos de reservas
   currencies         Json    @default("[{\"code\":\"CUP\",\"symbol\":\"$\",\"rate\":1,\"label\":\"Peso cubano\"},{\"code\":\"USD\",\"symbol\":\"US$\",\"rate\":320,\"label\":\"Dólar\"},{\"code\":\"EUR\",\"symbol\":\"€\",\"rate\":345,\"label\":\"Euro\"},{\"code\":\"MLC\",\"symbol\":\"MLC\",\"rate\":270,\"label\":\"MLC\"}]")
 

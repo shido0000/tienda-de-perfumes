@@ -12,7 +12,7 @@ import { SafeImage } from "@/components/SafeImage";
 
 export function CartView({ signedIn }: { signedIn: boolean }) {
   const { lines, setQuantity, remove, ready } = useCart();
-  const { price, currency } = usePrice();
+  const { price, priceSecond, currency } = usePrice();
   const { settings } = useSettings();
   const router = useRouter();
   const [notice, setNotice] = useState<string | null>(null);
@@ -88,6 +88,11 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
                 <p className="truncate font-display text-lg text-ink">{line.name}</p>
                 <p className="mt-1 text-sm tabular-nums text-muted">
                   {price(line.price, line.currency)} c/u
+                  {priceSecond(line.price, line.currency) && (
+                    <span className="ml-1 text-xs">
+                      ({priceSecond(line.price, line.currency)})
+                    </span>
+                  )}
                 </p>
 
                 <div className="mt-3 flex items-center gap-3">

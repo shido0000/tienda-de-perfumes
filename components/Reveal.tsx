@@ -11,37 +11,38 @@ type RevealProps = {
 };
 
 /**
- * Aparición suave al entrar en pantalla, sin dependencias.
+ * Aparición suave al cargar, sin dependencias y sin riesgo de contenido oculto.
  *
- * Sólo se anima si hay IntersectionObserver y el usuario no pidió menos
- * movimiento; en cualquier otro caso el contenido se ve de entrada (nunca
- * queda invisible por un fallo del observer).
+ * Regla de oro: el contenido NUNCA queda invisible. La animación es sólo un
+ * extra que se dispara al montar; si el navegador no ejecuta JS, no hay
+ * IntersectionObserver o el usuario pidió menos movimiento, todo se ve igual.
+ * (Antes se esperaba al scroll con IntersectionObserver: en capturas de página
+ * completa o con el observer sin dispararse, las tarjetas quedaban en opacidad 0.)
  */
 export function Reveal({ children, delay = 0, className = "", as = "div" }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [shown, setShown] = useState(false);
-  const [armed, setArmed] = useState(false);
 
   useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced || typeof IntersectionObserver === "undefined") {
+    const reduced =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduced) {
       setShown(true);
       return;
     }
-    setArmed(true);
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.08 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+
+    // Se muestra en el siguiente frame tras la hidratación: la transición de
+    // opacidad se reproduce una vez y el contenido queda visible para siempre.
+    const raf = window.requestAnimationFrame(() => setShown(true));
+    // Red de seguridad extra por si el frame no llega (pestaña en segundo plano).
+    const failsafe = window.setTimeout(() => setShown(true), 1200);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(failsafe);
+    };
   }, []);
 
   const Tag = as as any;
@@ -49,7 +50,7 @@ export function Reveal({ children, delay = 0, className = "", as = "div" }: Reve
     <Tag
       ref={ref as any}
       style={{ transitionDelay: shown ? `${delay}ms` : undefined }}
-      className={`${armed && !shown ? "reveal-init" : ""} ${shown ? "reveal-in" : ""} ${className}`}
+      className={`${shown ? "reveal-in" : ""} ${className}`}
     >
       {children}
     </Tag>

@@ -21,6 +21,9 @@ const schema = z.object({
   maxRadius: z.number().min(1).max(500),
   baseCurrency: z.string().min(2).max(6),
   displayCurrency: z.string().min(2).max(6),
+  showSecondCurrency: z.boolean().default(false),
+  secondCurrency: z.string().min(2).max(6).default("USD"),
+  showStock: z.boolean().default(true),
   notificationPhones: z
     .array(z.string().regex(/^\d{6,15}$/, "Teléfono sin signos: solo dígitos con código de país"))
     .max(10)
@@ -127,6 +130,9 @@ export async function PUT(req: Request) {
     maxRadius: d.maxRadius,
     baseCurrency: d.baseCurrency.toUpperCase(),
     displayCurrency: d.displayCurrency.toUpperCase(),
+    showSecondCurrency: d.showSecondCurrency,
+    secondCurrency: d.secondCurrency.toUpperCase(),
+    showStock: d.showStock,
     notificationPhones: d.notificationPhones,
     currencies: d.currencies.map((c) => ({ ...c, code: c.code.toUpperCase() })),
   };
