@@ -22,9 +22,8 @@
 ## Environment and deploy
 
 - Cloudflare local secrets go in `.dev.vars` (gitignored). Loaded by `scripts/db-prepare.mjs`, `scripts/db-repair.mjs`, and `scripts/reset-db.mjs`.
-- Cloudflare bindings come from `wrangler.jsonc`: `ASSETS`, `HYPERDRIVE`, and `WORKER_SELF_REFERENCE`.
-- Replace `HYPERDRIVE.id` in `wrangler.jsonc` with the real Hyperdrive ID before deploying.
-- If Hyperdrive is unavailable, `lib/db.ts` falls back to `DATABASE_URL` (transaction pooler, port 6543, `?pgbouncer=true`).
+- Cloudflare bindings come from `wrangler.jsonc`: `ASSETS` and `WORKER_SELF_REFERENCE`. There is no `HYPERDRIVE` binding.
+- Database access uses the `DATABASE_URL` runtime secret (transaction pooler, port 6543, `?pgbouncer=true`). Do not add a `HYPERDRIVE` binding without a real ID.
 - `DIRECT_URL` (session pooler, port 5432) is for Prisma schema operations only.
 - Set `JWT_SECRET` explicitly. `lib/auth.ts` currently falls back to `dev-secret-change-me`, which is not safe for production.
 - Keep `Vercel` env vars intact: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `NEXT_PUBLIC_SITE_URL`, plus optional mail/WhatsApp/cron keys.
