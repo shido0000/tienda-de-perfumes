@@ -29,6 +29,12 @@ scripts/fix-hero-subtitle.ts
 scripts/fix-tagline.ts
 scripts/retarget.ts
 
+# Cloudflare / OpenNext
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts
+
 # Basura
 *.log
 .DS_Store

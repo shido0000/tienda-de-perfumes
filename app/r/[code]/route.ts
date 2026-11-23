@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
  * Guarda el código en la cookie del visitante y lo manda a la tienda. Desde
  * ese momento el catálogo le muestra los precios con el recargo del gestor.
  */
-export async function GET(req: NextRequest, { params }: { params: { code: string } }) {
-  const manager = await findManagerByCode(params.code).catch(() => null);
+export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  const manager = await findManagerByCode(code).catch(() => null);
   const target = new URL("/", req.url);
 
   if (!manager) {

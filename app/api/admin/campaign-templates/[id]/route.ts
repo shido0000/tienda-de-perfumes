@@ -14,9 +14,10 @@ const patchSchema = z.object({
   used: z.boolean().optional(),
 });
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: Params) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
@@ -29,23 +30,24 @@ export async function PATCH(req: Request, { params }: Params) {
   const data: Record<string, unknown> = { ...rest };
   if (link !== undefined) data.link = link?.trim() || null;
 
-  const exists = await prisma.campaignTemplate.findUnique({ where: { id: params.id } });
+  const exists = await prisma.campaignTemplate.findUnique({ where: { id } });
   if (!exists) return NextResponse.json({ error: "No encontrada." }, { status: 404 });
 
   const template = await prisma.campaignTemplate.update({
-    where: { id: params.id },
+    where: { id },
     data: used && Object.keys(data).length === 0 ? { uses: { increment: 1 } } : data,
   });
   return NextResponse.json({ template });
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const exists = await prisma.campaignTemplate.findUnique({ where: { id: params.id } });
+  const exists = await prisma.campaignTemplate.findUnique({ where: { id } });
   if (!exists) return NextResponse.json({ error: "No encontrada." }, { status: 404 });
 
-  await prisma.campaignTemplate.delete({ where: { id: params.id } });
+  await prisma.campaignTemplate.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

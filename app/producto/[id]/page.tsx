@@ -28,10 +28,11 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
+  const { id } = await params;
   const [product, settings] = await Promise.all([
-    prisma.product.findFirst({ where: { id: params.id, visible: true } }),
+    prisma.product.findFirst({ where: { id, visible: true } }),
     getSettings(),
   ]);
   if (!product) return { title: "Perfume no encontrado", robots: { index: false } };
@@ -60,9 +61,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({ params }: { params: { id: string } }) {
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const product = await prisma.product.findFirst({
-    where: { id: params.id, visible: true },
+    where: { id, visible: true },
   });
   if (!product) notFound();
 

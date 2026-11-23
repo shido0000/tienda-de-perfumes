@@ -1,5 +1,8 @@
 # Guía de deploy y de reinicio de la base
 
+> Esta guía es histórica y está enfocada en Vercel. Para Cloudflare/OpenNext,
+> consultá `AGENTS.md`; Vercel se conserva solo como respaldo.
+
 > **Nombre del proyecto: `TiendaDePerfumes`.** Mover el chat a un proyecto se
 > hace en el panel de NoCoder (sección 8), no en el código.
 

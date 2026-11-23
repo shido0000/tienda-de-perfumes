@@ -17,7 +17,7 @@ export type SessionUser = {
  * ends up reading another's rows.
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
-  const token = cookies().get(AUTH_COOKIE)?.value;
+  const token = (await cookies()).get(AUTH_COOKIE)?.value;
   const userId = verifyToken(token);
   if (!userId) return null;
 

@@ -17,8 +17,9 @@ const patchSchema = z.object({
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
@@ -33,7 +34,7 @@ export async function PATCH(
 
   const campaign = await prisma.campaign
     .update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(d.title !== undefined ? { title: d.title.trim() } : {}),
         ...(d.platform ? { platform: d.platform } : {}),
@@ -54,12 +55,13 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const deleted = await prisma.campaign.delete({ where: { id: params.id } }).catch(() => null);
+  const deleted = await prisma.campaign.delete({ where: { id } }).catch(() => null);
   if (!deleted) return NextResponse.json({ error: "Campaña no encontrada" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

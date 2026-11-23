@@ -19,7 +19,8 @@ const payoutSchema = z.object({
  * importe pagado: así cada reserva queda marcada (payoutId) y el panel puede
  * decir exactamente qué ventas ya están pagadas y cuáles no.
  */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -33,7 +34,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { amount, currency, note } = parsed.data;
 
   const manager = await prisma.user.findFirst({
-    where: { id: params.id, role: "GESTOR" },
+    where: { id, role: "GESTOR" },
     select: { id: true },
   });
   if (!manager) return NextResponse.json({ error: "Gestor no encontrado" }, { status: 404 });

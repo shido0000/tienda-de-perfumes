@@ -12,8 +12,9 @@ export const dynamic = "force-dynamic";
 
 const DATA_URL = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/;
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const productId = decodeURIComponent(params.id);
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const productId = decodeURIComponent(id);
   if (!productId) return new Response("Imagen inválida", { status: 400 });
 
   const product = await prisma.product

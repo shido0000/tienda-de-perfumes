@@ -45,6 +45,7 @@ const loadEnvFile = (file) => {
     process.env[key] = value;
   }
 };
+loadEnvFile(".dev.vars");
 loadEnvFile(".env.local");
 loadEnvFile(".env");
 

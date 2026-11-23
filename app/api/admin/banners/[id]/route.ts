@@ -5,7 +5,8 @@ import { bannerSchema } from "@/lib/promo-schema";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
@@ -20,7 +21,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { endsAt, ...rest } = parsed.data;
   const banner = await prisma.banner
     .update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...rest,
         ...(endsAt !== undefined ? { endsAt: endsAt ? new Date(endsAt) : null } : {}),
@@ -32,11 +33,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ banner });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const deleted = await prisma.banner.delete({ where: { id: params.id } }).catch(() => null);
+  const deleted = await prisma.banner.delete({ where: { id } }).catch(() => null);
   if (!deleted) return NextResponse.json({ error: "Banner no encontrado" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

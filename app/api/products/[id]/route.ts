@@ -39,10 +39,11 @@ const patchSchema = z.object({
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const product = await prisma.product.findFirst({
-    where: { id: params.id, visible: true },
+    where: { id, visible: true },
   });
   if (!product) {
     return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
@@ -59,8 +60,9 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
@@ -81,12 +83,12 @@ export async function PATCH(
   };
 
   const before = await prisma.product.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { stock: true, name: true },
   });
 
   const product = await prisma.product
-    .update({ where: { id: params.id }, data })
+    .update({ where: { id }, data })
     .catch(() => null);
 
   if (!product) {
@@ -108,12 +110,13 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const deleted = await prisma.product.delete({ where: { id: params.id } }).catch(() => null);
+  const deleted = await prisma.product.delete({ where: { id } }).catch(() => null);
   if (!deleted) {
     return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
   }

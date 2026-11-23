@@ -19,12 +19,13 @@ const DATA_URL = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/;
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string; index: string } },
+  { params }: { params: Promise<{ id: string; index: string }> },
 ) {
-  const productId = decodeURIComponent(params.id);
-  const index = Number.parseInt(params.index, 10);
+  const { id, index } = await params;
+  const productId = decodeURIComponent(id);
+  const imageIndex = Number.parseInt(index, 10);
 
-  if (!productId || !Number.isInteger(index) || index < 0) {
+  if (!productId || !Number.isInteger(imageIndex) || imageIndex < 0) {
     return new Response("Imagen inválida", { status: 400 });
   }
 
@@ -32,7 +33,7 @@ export async function GET(
     .findUnique({ where: { id: productId }, select: { images: true } })
     .catch(() => null);
 
-  const url = product?.images?.[index];
+  const url = product?.images?.[imageIndex];
   if (!url) {
     return new Response("Imagen no encontrada", { status: 404 });
   }

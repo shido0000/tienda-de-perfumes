@@ -26,8 +26,8 @@ export function todayKey(): string {
  * Lee el visitorId de la petición. Si todavía no existe, genera uno y avisa que
  * hay que guardarlo en la respuesta (shouldSet = true).
  */
-export function readVisitor(): { visitorId: string; shouldSet: boolean } {
-  const existing = cookies().get(VISITOR_COOKIE)?.value;
+export async function readVisitor(): Promise<{ visitorId: string; shouldSet: boolean }> {
+  const existing = (await cookies()).get(VISITOR_COOKIE)?.value;
   if (existing) return { visitorId: existing, shouldSet: false };
   return { visitorId: newVisitorId(), shouldSet: true };
 }

@@ -43,7 +43,7 @@ async function resolveManager(req: NextRequest) {
  * anónimo de navegador y, si había sesión, el id de la cuenta.
  */
 export async function POST(req: NextRequest) {
-  const who = readVisitor();
+  const who = await readVisitor();
 
   // Freno anti-abuso: muchísimos beacons seguidos desde el mismo navegador se
   // ignoran (no afecta a una persona normal navegando).
@@ -129,7 +129,7 @@ const CartEventSchema = z.object({
  * de un gestor o directo a la tienda.
  */
 export async function PUT(req: NextRequest) {
-  const who = readVisitor();
+  const who = await readVisitor();
   const limit = rateLimit(`cartadd:${who.visitorId}`, 60, 60_000);
   if (!limit.ok) return NextResponse.json({ ok: false, reason: "rate_limited" });
 

@@ -58,7 +58,7 @@ export async function getSiteUrl(): Promise<string> {
 export async function getRequestOrigin(): Promise<string> {
   try {
     const { headers } = await import("next/headers");
-    const h = headers();
+    const h = await headers();
     const host = (h.get("x-forwarded-host") || h.get("host") || "").split(",")[0]!.trim();
     if (!host) return "";
     const proto =

@@ -9,9 +9,9 @@ Tienda de perfumes donde el cliente **reserva** fragancias: arma el carrito, eli
 retiro en tienda o envío por kilómetro (calculado por distancia), paga en efectivo
 o por transferencia, y la tienda confirma cada reserva desde el panel de administración.
 
-La moneda base de la tienda es el **peso cubano (CUP)**. El visitante puede ver los
-precios en USD, EUR o MLC desde el selector del encabezado; la tienda define las
-cotizaciones en **Administración → Ajustes**.
+La moneda de visualización la define la tienda en **Administración → Ajustes**. No
+hay selector de moneda para el visitante; el envío siempre se muestra y se cobra
+en **CUP**.
 
 > **Deploy y reinicio de la base:** ver **[GUIA-DEPLOY.md](GUIA-DEPLOY.md)**.
 > Ahí está qué hacer si el deploy falla con `Failed to fetch`, cómo empezar la
@@ -22,7 +22,7 @@ cotizaciones en **Administración → Ajustes**.
 
 **Cliente**
 - Ver el catálogo con filtros por familia olfativa, buscador y ficha de producto con notas.
-- Cambiar la moneda de visualización (CUP por defecto, más USD / EUR / MLC).
+- Ver los precios en la moneda configurada por la tienda (el envío siempre en CUP).
 - Guardar favoritos en la lista de deseos y sumar varios productos al carrito.
 - Checkout: retiro o envío por km con mapa, datos de contacto, nota opcional.
 - Pagar en efectivo (pago al retirar/recibir) o por transferencia (adjuntando la imagen del comprobante).

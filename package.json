@@ -5,31 +5,37 @@
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "prisma generate && node scripts/db-repair.mjs && node scripts/db-prepare.mjs && next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/patch-fontkit.mjs && prisma generate",
     "db:push": "prisma db push",
     "deploy:supabase": "node scripts/deploy-supabase.mjs",
     "test:regression": "node scripts/regression.mjs",
     "db:reset": "node scripts/reset-db.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "build:worker": "opennextjs-cloudflare build",
     "preview:worker": "npm run build:worker && opennextjs-cloudflare preview",
-    "deploy:worker": "npm run build:worker && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "deploy:worker": "npm run build:worker && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "1.20.18",
     "@phosphor-icons/react": "2.1.10",
+    "@prisma/adapter-pg": "5.18.0",
     "@prisma/client": "5.18.0",
     "bcryptjs": "2.4.3",
     "jose": "5.9.6",
     "jsonwebtoken": "9.0.2",
     "leaflet": "^1.9.4",
-    "next": "14.2.35",
+    "next": "15.5.29",
     "pdfkit": "^0.15.0",
+    "pg": "^8.11.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-leaflet": "^4.2.1",
     "sharp": "^0.35.5",
     "web-push": "^4.0.0",
-    "zod": "3.23.8"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "2.4.6",
@@ -37,17 +43,21 @@
     "@types/leaflet": "^1.9.12",
     "@types/node": "20.14.10",
     "@types/pdfkit": "^0.17.7",
+    "@types/pg": "^8.11.10",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "@types/web-push": "^3.6.4",
     "autoprefixer": "10.4.20",
-    "postcss": "8.4.41",
+    "postcss": "8.5.33",
     "prisma": "5.18.0",
     "tailwindcss": "3.4.10",
     "tsx": "^4.19.2",
     "typescript": "5.5.4",
-    "@opennextjs/cloudflare": "latest",
-    "wrangler": "latest"
+    "wrangler": "^4.166.0"
+  },
+  "overrides": {
+    "postcss": "8.5.33",
+    "glob": "14.0.6"
   },
   "prisma": {
     "seed": "node -e \"console.log('Seed desactivado: la base de producción ya tiene los datos reales. No se cargan datos de ejemplo.')\""

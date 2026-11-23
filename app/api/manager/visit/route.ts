@@ -32,11 +32,11 @@ function newVisitorId(): string {
 }
 
 export async function POST() {
-  const code = cookies().get(REF_COOKIE)?.value;
+  const jar = await cookies();
+  const code = jar.get(REF_COOKIE)?.value;
   const manager = await findManagerByCode(code).catch(() => null);
   if (!manager) return NextResponse.json({ ok: false, reason: "no_manager" });
 
-  const jar = cookies();
   let visitorId = jar.get(VISITOR_COOKIE)?.value;
   const shouldSetVisitor = !visitorId;
   if (!visitorId) visitorId = newVisitorId();

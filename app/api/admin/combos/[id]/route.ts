@@ -6,7 +6,8 @@ import { comboSchema } from "@/lib/promo-schema";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
@@ -27,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const combo = await prisma.combo
     .update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...rest,
         ...(rest.currency ? { currency: rest.currency.toUpperCase() } : {}),
@@ -48,11 +49,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ combo: normalizeCombo(combo) });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const deleted = await prisma.combo.delete({ where: { id: params.id } }).catch(() => null);
+  const deleted = await prisma.combo.delete({ where: { id } }).catch(() => null);
   if (!deleted) return NextResponse.json({ error: "Oferta no encontrada" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

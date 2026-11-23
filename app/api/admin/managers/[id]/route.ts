@@ -14,12 +14,13 @@ const patchSchema = z.object({
 });
 
 /** Detalle de un gestor: sus últimas ventas y sus pagos registrados. */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const manager = await prisma.user.findFirst({
-    where: { id: params.id, role: "GESTOR" },
+    where: { id, role: "GESTOR" },
     select: {
       id: true,
       name: true,
@@ -86,7 +87,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 /** Cambia la tasa de ganancia, el nombre o enciende/apaga su enlace. */
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -100,7 +102,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const body = parsed.data;
 
   const target = await prisma.user.findFirst({
-    where: { id: params.id, role: "GESTOR" },
+    where: { id, role: "GESTOR" },
     select: { id: true },
   });
   if (!target) return NextResponse.json({ error: "Gestor no encontrado" }, { status: 404 });
@@ -120,12 +122,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 /** Quitarle el rol de gestor (su historial de ventas se conserva). */
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const target = await prisma.user.findFirst({
-    where: { id: params.id, role: "GESTOR" },
+    where: { id, role: "GESTOR" },
     select: { id: true },
   });
   if (!target) return NextResponse.json({ error: "Gestor no encontrado" }, { status: 404 });

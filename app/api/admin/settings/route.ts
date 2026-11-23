@@ -62,7 +62,7 @@ const contentSchema = z.object({
   seoKeywords: z.string().max(300).optional(),
   siteUrl: z.string().max(200).optional(),
   googleSiteVerification: z.string().max(120).optional(),
-  siteTexts: z.record(z.string().max(400)).optional(),
+  siteTexts: z.record(z.string(), z.string().max(400)).optional(),
 });
 
 function sanitizeLogo(value: string | null | undefined): string | null {

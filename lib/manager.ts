@@ -83,7 +83,7 @@ export async function findManagerByCode(code: string | null | undefined): Promis
 
 /** El gestor del visitante actual, según su cookie. null si no vino por un enlace. */
 export async function getRefManager(): Promise<ManagerInfo | null> {
-  const code = cookies().get(REF_COOKIE)?.value;
+  const code = (await cookies()).get(REF_COOKIE)?.value;
   if (!code) return null;
   return findManagerByCode(code);
 }

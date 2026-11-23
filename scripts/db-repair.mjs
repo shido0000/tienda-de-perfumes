@@ -13,7 +13,26 @@
  *
  * Nunca borra datos ni tablas. Si algo falla, avisa y sigue.
  */
+import { readFileSync, existsSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
+
+const loadEnvFile = (file) => {
+  if (!existsSync(file)) return;
+  for (const line of readFileSync(file, "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!m || line.trim().startsWith("#")) continue;
+    const key = m[1];
+    if (process.env[key] !== undefined) continue;
+    let value = m[2].trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+};
+loadEnvFile(".dev.vars");
+loadEnvFile(".env.local");
+loadEnvFile(".env");
 
 const prisma = new PrismaClient();
 
