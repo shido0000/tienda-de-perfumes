@@ -10,11 +10,5 @@
   },
   "vars": {
     "WORKER_SELF_REFERENCE": "https://tienda-de-perfumes.workers.dev"
-  },
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "REPLACE_WITH_HYPERDRIVE_ID"
-    }
-  ]
+  }
 }
