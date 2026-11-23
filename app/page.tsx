@@ -59,7 +59,7 @@ export default async function HomePage() {
   const [products, settings, user, categoryRows, homeBanners] = await Promise.all([
     loadCatalog(manager),
     getSettings(),
-    getCurrentUser(),
+    getCurrentUser().catch(() => null),
     prisma.category
       .findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] })
       .catch(() => []),

@@ -119,7 +119,7 @@ export default async function RootLayout({
 }) {
   const [settings, user, siteUrl, manager] = await Promise.all([
     getSettings(),
-    getCurrentUser(),
+    getCurrentUser().catch(() => null),
     getSiteUrl(),
     getRefManager().catch(() => null),
   ]);

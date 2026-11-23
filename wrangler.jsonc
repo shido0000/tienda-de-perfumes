@@ -9,6 +9,6 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "WORKER_SELF_REFERENCE": "https://tienda-de-perfumes.workers.dev"
+    "WORKER_SELF_REFERENCE": "https://tienda-de-perfumes.jonyperez1099.workers.dev"
   }
 }

@@ -21,11 +21,15 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const userId = verifyToken(token);
   if (!userId) return null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true, role: true },
-  });
-  return user ?? null;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, role: true },
+    });
+    return user ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Throws-nothing guard for API routes: returns null when unauthenticated. */
