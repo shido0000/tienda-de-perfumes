@@ -23,12 +23,22 @@ function connectionString(): string {
   return value;
 }
 
+function schemaFromConnectionString(url: string): string | undefined {
+  try {
+    return new URL(url).searchParams.get("schema") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function getClient(): PrismaClient {
   const url = connectionString();
   if (state.client && state.connectionString === url) return state.client;
 
   const pool = new Pool({ connectionString: url });
-  const adapter = new PrismaPg(pool);
+  const adapter = new PrismaPg(pool, {
+    schema: schemaFromConnectionString(url),
+  });
   const client = new PrismaClient({ adapter });
 
   state.client = client;
