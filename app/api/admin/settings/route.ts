@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { parseCurrencies } from "@/lib/currency";
 import { sanitizeSiteTexts } from "@/lib/site-texts";
+import { parseJson, stringifyJson } from "@/lib/json";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,12 @@ export async function GET() {
   const row = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
   if (!row) return NextResponse.json({ error: "Sin configuración" }, { status: 404 });
   return NextResponse.json({
-    settings: { ...row, currencies: parseCurrencies(row.currencies) },
+    settings: {
+      ...row,
+      currencies: parseCurrencies(row.currencies),
+      notificationPhones: parseJson<unknown>(row.notificationPhones, []),
+      siteTexts: parseJson<unknown>(row.siteTexts, {}),
+    },
   });
 }
 
@@ -116,6 +122,7 @@ export async function PUT(req: Request) {
     );
   }
 
+  const currencies = d.currencies.map((c) => ({ ...c, code: c.code.toUpperCase() }));
   const data = {
     brand: d.brand,
     tagline: d.tagline,
@@ -133,8 +140,8 @@ export async function PUT(req: Request) {
     showSecondCurrency: d.showSecondCurrency,
     secondCurrency: d.secondCurrency.toUpperCase(),
     showStock: d.showStock,
-    notificationPhones: d.notificationPhones,
-    currencies: d.currencies.map((c) => ({ ...c, code: c.code.toUpperCase() })),
+    notificationPhones: stringifyJson(d.notificationPhones),
+    currencies: stringifyJson(currencies),
   };
 
   const settings = await prisma.storeSettings.upsert({
@@ -147,16 +154,16 @@ export async function PUT(req: Request) {
   // fecha. Las reservas viejas conservan su precio (ya congelado por línea), así
   // que mover la tasa hoy nunca cambia lo que se pagó ayer.
   const lastLog = await prisma.currencyRateLog.findFirst({ orderBy: { createdAt: "desc" } });
-  const prevSnapshot = (lastLog?.snapshot as Record<string, number> | undefined) ?? {};
-  const changed = data.currencies.filter((c) => prevSnapshot[c.code] !== c.rate);
+  const prevSnapshot = parseJson<Record<string, number>>(lastLog?.snapshot, {});
+  const changed = currencies.filter((c) => prevSnapshot[c.code] !== c.rate);
   if (changed.length > 0) {
     const snapshot: Record<string, number> = {};
-    for (const c of data.currencies) snapshot[c.code] = c.rate;
+    for (const c of currencies) snapshot[c.code] = c.rate;
     await prisma.currencyRateLog.create({
       data: {
         code: changed.map((c) => c.code).join(","),
         rate: changed[0].rate,
-        snapshot,
+        snapshot: stringifyJson(snapshot),
       },
     });
   }
@@ -215,11 +222,11 @@ export async function PATCH(req: Request) {
   // hay para no borrar las claves que el panel no reenvió.
   if (parsed.data.siteTexts) {
     const current = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
-    const prev = (current?.siteTexts as Record<string, unknown> | null) ?? {};
-    data.siteTexts = {
+    const prev = parseJson<Record<string, unknown>>(current?.siteTexts, {});
+    data.siteTexts = stringifyJson({
       ...prev,
       ...sanitizeSiteTexts(parsed.data.siteTexts),
-    };
+    });
   }
 
   const settings = await prisma.storeSettings.upsert({

@@ -1,3 +1,5 @@
+import { parseJson } from "./json";
+
 /**
  * Prisma devuelve `price`, `costCup` y `compareAtPrice` como Decimal, que al
  * pasar por JSON.stringify se convierten en TEXTO. El panel llamaba
@@ -45,8 +47,9 @@ export function normalizeProduct<
  * `{ q, a }` válidos, así que se filtra acá y no en cada componente.
  */
 export function normalizeFaqs(raw: unknown): { q: string; a: string }[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
+  const parsed = parseJson<unknown>(raw, []);
+  if (!Array.isArray(parsed)) return [];
+  return parsed
     .filter(
       (item): item is { q: string; a: string } =>
         !!item &&

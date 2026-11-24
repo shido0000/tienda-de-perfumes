@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { parseJson } from "./json";
 
 /**
  * Aviso de reserva por WhatsApp.
@@ -52,7 +53,7 @@ export async function notifyReservation(notice: ReservationNotice): Promise<{
   let phones: string[] = [];
   try {
     const row = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
-    const raw = row?.notificationPhones;
+    const raw = parseJson<unknown>(row?.notificationPhones, []);
     if (Array.isArray(raw)) phones = raw.map((p) => String(p).replace(/[^\d]/g, "")).filter(Boolean);
     if (!phones.length && row?.whatsapp) phones = [row.whatsapp.replace(/[^\d]/g, "")];
   } catch {

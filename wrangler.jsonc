@@ -8,6 +8,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tienda-perfumes-db",
+      "database_id": "c5cf1178-9e09-4a12-b567-a9aff41ad8b3"
+    }
+  ],
   "vars": {
     "WORKER_SELF_REFERENCE": "https://tienda-de-perfumes.jonyperez1099.workers.dev"
   }

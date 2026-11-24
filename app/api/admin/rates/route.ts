@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
+import { parseJson } from "@/lib/json";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET() {
     history: logs.map((l) => ({
       id: l.id,
       code: l.code,
-      snapshot: l.snapshot as Record<string, number>,
+      snapshot: parseJson<Record<string, number>>(l.snapshot, {}),
       createdAt: l.createdAt.toISOString(),
     })),
   });

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { parseJson } from "@/lib/json";
 
 /**
  * Sirve la PRIMERA foto de un producto (la que usa la tarjeta del catálogo).
@@ -21,7 +22,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .findUnique({ where: { id: productId }, select: { images: true } })
     .catch(() => null);
 
-  const url = product?.images?.[0];
+  const images = parseJson<string[]>(product?.images, []);
+  const url = Array.isArray(images) ? images[0] : undefined;
   if (!url) return new Response("Imagen no encontrada", { status: 404 });
 
   if (!url.startsWith("data:")) {

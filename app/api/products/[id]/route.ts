@@ -5,6 +5,7 @@ import { normalizeProduct } from "@/lib/normalize-product";
 import { withPublicImages } from "@/lib/image-url";
 import { handleRestock } from "@/lib/restock";
 import { getRefManager, withManagerPrice } from "@/lib/manager";
+import { stringifyJson } from "@/lib/json";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -76,10 +77,13 @@ export async function PATCH(
 
   // Una categoría vacía llega como "" desde el formulario: se guarda como null
   // para no romper la relación con Category.
+  const { images, faqs, ...fields } = parsed.data;
   const data = {
-    ...parsed.data,
-    ...(parsed.data.categoryId === "" ? { categoryId: null } : {}),
-    ...(parsed.data.currency ? { currency: parsed.data.currency.toUpperCase() } : {}),
+    ...fields,
+    ...(fields.categoryId === "" ? { categoryId: null } : {}),
+    ...(fields.currency ? { currency: fields.currency.toUpperCase() } : {}),
+    ...(images ? { images: stringifyJson(images) } : {}),
+    ...(faqs ? { faqs: stringifyJson(faqs) } : {}),
   };
 
   const before = await prisma.product.findUnique({

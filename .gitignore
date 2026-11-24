@@ -36,3 +36,9 @@ npm-debug.log*
 .wrangler/
 .dev.vars
 cloudflare-env.d.ts
+
+# SQLite local y volcado one-time (contiene datos reales)
+prisma/dev.db
+prisma/import-data.json
+migrations/0002_import.sql
+

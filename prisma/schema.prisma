@@ -4,9 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Health {
@@ -28,7 +27,7 @@ model User {
   managerCode      String?  @unique
   /// Cómo se calcula su ganancia: PERCENT (% sobre el precio real) | FIXED (monto fijo por unidad).
   managerRateType  String? // PERCENT | FIXED
-  managerRateValue Decimal? @db.Decimal(12, 2)
+  managerRateValue Decimal?
   /// Enlace activo: si está apagado, los enlaces de este gestor dejan de subir precios.
   managerActive    Boolean  @default(false)
 
@@ -113,7 +112,7 @@ model CartAdd {
   productName String
   quantity    Int      @default(1)
   /// Precio unitario tal como lo vio el cliente.
-  unitPrice   Decimal  @db.Decimal(12, 2)
+  unitPrice   Decimal 
   currency    String   @default("ARS")
   createdAt   DateTime @default(now())
 
@@ -142,15 +141,15 @@ model Product {
   category       String   @default("General") // nombre de la categoría
   categoryId     String?
   notes          String?
-  price          Decimal  @db.Decimal(12, 2)
+  price          Decimal 
   /// Precio anterior, solo para mostrar la REBAJA tachada. null = sin rebaja.
-  compareAtPrice Decimal? @db.Decimal(12, 2)
+  compareAtPrice Decimal?
   currency       String   @default("CUP")
   /// Precio de COSTO de compra, en CUP — la misma moneda en que se carga el
   /// precio de venta. Solo lo ve la administración. La columna física sigue
   /// llamándose `costUsd` en la base para no destruir datos al migrar.
-  costCup        Decimal? @map("costUsd") @db.Decimal(12, 2)
-  images         String[] @default([])
+  costCup        Decimal? @map("costUsd")
+  images         String   @default("[]")
   visible        Boolean  @default(true)
   stock          Int?
   createdAt      DateTime @default(now())
@@ -164,7 +163,7 @@ model Product {
   gender   String  @default("UNISEX")
   /// Preguntas frecuentes de ESTE perfume, editadas por la tienda.
   /// Formato: [{ "q": "¿Es original?", "a": "Sí, ..." }]
-  faqs     Json    @default("[]")
+  faqs     String  @default("[]")
 
   categoryRef      Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   reservationItems ReservationItem[]
@@ -183,14 +182,14 @@ model Reservation {
   code              String   @unique
   userId            String
   currency          String
-  subtotal          Decimal  @db.Decimal(12, 2)
+  subtotal          Decimal 
   deliveryType      String // PICKUP | DELIVERY
   address           String?
   latitude          Float?
   longitude         Float?
   distanceKm        Float?
-  shippingCost      Decimal  @default(0) @db.Decimal(12, 2)
-  total             Decimal  @db.Decimal(12, 2)
+  shippingCost      Decimal  @default(0)
+  total             Decimal 
   paymentMethod     String // CASH | TRANSFER
   transferProofUrl  String?
   status            String   @default("PENDING") // PENDING | CONFIRMED | PREPARING | SHIPPED | DELIVERED | CANCELLED
@@ -200,12 +199,12 @@ model Reservation {
   /// Copia de la tasa del gestor EN EL MOMENTO de la venta: cambiarla después
   /// no altera lo que ya se le debe.
   managerRateType   String?
-  managerRateValue  Decimal? @db.Decimal(12, 2)
+  managerRateValue  Decimal?
   /// Recargo total cobrado al cliente por entrar con el enlace del gestor
   /// (en la moneda del pedido).
-  managerSurcharge  Decimal  @default(0) @db.Decimal(12, 2)
+  managerSurcharge  Decimal  @default(0)
   /// Ganancia del gestor por esta venta (en la moneda del pedido).
-  managerCommission Decimal  @default(0) @db.Decimal(12, 2)
+  managerCommission Decimal  @default(0)
   /// Pago en el que se liquidó esta comisión. null = pendiente de pago.
   payoutId          String?
   createdAt         DateTime @default(now())
@@ -228,7 +227,7 @@ model ManagerPayout {
   id        String   @id @default(cuid())
   managerId String
   /// Importe pagado (moneda de la tienda).
-  amount    Decimal  @db.Decimal(12, 2)
+  amount    Decimal 
   currency  String
   note      String?
   createdAt DateTime @default(now())
@@ -247,9 +246,9 @@ model ReservationItem {
   comboId          String?
   name             String
   brand            String
-  priceOriginal    Decimal @db.Decimal(12, 2)
+  priceOriginal    Decimal
   currencyOriginal String
-  priceConverted   Decimal @db.Decimal(12, 2)
+  priceConverted   Decimal
   orderCurrency    String
   quantity         Int
 
@@ -319,8 +318,8 @@ model StoreSettings {
   storeAddress       String  @default("123 Calle Ejemplo, Buenos Aires")
   storeLat           Float   @default(-34.6037)
   storeLng           Float   @default(-58.3816)
-  baseRate           Decimal @default(250) @db.Decimal(12, 2)
-  perKm              Decimal @default(120) @db.Decimal(12, 2)
+  baseRate           Decimal @default(250)
+  perKm              Decimal @default(120)
   maxRadius          Float   @default(15)
   baseCurrency       String  @default("CUP")
   displayCurrency    String  @default("CUP") // moneda en la que se muestran los precios al cliente
@@ -329,18 +328,18 @@ model StoreSettings {
   secondCurrency     String  @default("USD")
   /// Si es true, el cliente ve cuántas unidades hay; si no, solo "disponible".
   showStock          Boolean @default(true)
-  notificationPhones Json    @default("[]") // números de WhatsApp que reciben avisos de reservas
-  currencies         Json    @default("[{\"code\":\"CUP\",\"symbol\":\"$\",\"rate\":1,\"label\":\"Peso cubano\"},{\"code\":\"USD\",\"symbol\":\"US$\",\"rate\":320,\"label\":\"Dólar\"},{\"code\":\"EUR\",\"symbol\":\"€\",\"rate\":345,\"label\":\"Euro\"},{\"code\":\"MLC\",\"symbol\":\"MLC\",\"rate\":270,\"label\":\"MLC\"}]")
+  notificationPhones String  @default("[]") // números de WhatsApp que reciben avisos de reservas
+  currencies         String  @default("[{\"code\":\"CUP\",\"symbol\":\"$\",\"rate\":1,\"label\":\"Peso cubano\"},{\"code\":\"USD\",\"symbol\":\"US$\",\"rate\":320,\"label\":\"Dólar\"},{\"code\":\"EUR\",\"symbol\":\"€\",\"rate\":345,\"label\":\"Euro\"},{\"code\":\"MLC\",\"symbol\":\"MLC\",\"rate\":270,\"label\":\"MLC\"}]")
 
   // ---- Imagen de marca -----------------------------------------------
   // Logo de la tienda: data URI (subida desde el panel) o URL externa.
-  logoUrl String? @db.Text
+  logoUrl String?
 
   // ---- Textos legales editables (formato simple Markdown) -------------
-  termsText        String @default("") @db.Text
-  privacyText      String @default("") @db.Text
-  cookiesText      String @default("") @db.Text
-  reservationsText String @default("") @db.Text
+  termsText        String @default("")
+  privacyText      String @default("")
+  cookiesText      String @default("")
+  reservationsText String @default("")
 
   // ---- Copy del catálogo / portada ------------------------------------
   catalogTitle String @default("Catálogo")
@@ -350,7 +349,7 @@ model StoreSettings {
 
   // ---- Textos editables de toda la web (nav, secciones, pie) -----------
   // JSON con { navCatalog, offerTitle, footerAbout, ... }. Ver lib/site-texts.ts.
-  siteTexts Json @default("{}")
+  siteTexts String @default("{}")
 
   // ---- SEO ------------------------------------------------------------
   seoTitle               String @default("Mist & Mood — Perfumería cubana")
@@ -369,7 +368,7 @@ model StoreSettings {
   // ---- Asistente con IA ----------------------------------------------
   // Clave del proveedor gratuito (Groq / OpenRouter / Google AI Studio).
   // Se guarda en la base para poder cambiarla desde el panel sin redeploy.
-  aiApiKey   String @default("") @db.Text
+  aiApiKey   String @default("")
   /// "groq" | "openrouter" | "gemini". Vacío = el que tenga clave en el entorno.
   aiProvider String @default("")
   aiModel    String @default("")
@@ -383,7 +382,7 @@ model StoreSettings {
   /// Remitente de los correos automáticos (debe estar validado en el proveedor).
   emailFrom             String  @default("")
   /// Clave del proveedor de correo (Resend o Brevo). Vacía = no se envía correo.
-  emailApiKey           String  @default("") @db.Text
+  emailApiKey           String  @default("")
   /// "resend" | "brevo". Vacío = se deduce por la forma de la clave.
   emailProvider         String  @default("")
   /// Correo del dueño que recibe un resumen de lo enviado.
@@ -398,7 +397,7 @@ model PushSubscription {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   endpoint  String   @unique
-  p256dh    String   @db.Text
+  p256dh    String  
   auth      String
   createdAt DateTime @default(now())
 
@@ -428,7 +427,7 @@ model CampaignTemplate {
   id        String   @id @default(cuid())
   title     String
   platform  String   @default("WHATSAPP") // FACEBOOK | INSTAGRAM | WHATSAPP | TWITTER
-  message   String   @db.Text
+  message   String  
   link      String?
   /// Cuántas veces se usó (se incrementa al copiarlo desde el panel).
   uses      Int      @default(0)
@@ -454,9 +453,9 @@ model Combo {
   /// como ALTER destructivo y el deploy se detenga. Si algún día hace falta
   /// más precisión, se hace en dos pasos (columna nueva → copiar datos →
   /// borrar la vieja), nunca cambiando la columna en el sitio.
-  price          Decimal  @db.Decimal(12, 2)
+  price          Decimal 
   /// Precio de lista (suma normal de los productos) para mostrar el ahorro.
-  compareAtPrice Decimal? @db.Decimal(12, 2)
+  compareAtPrice Decimal?
   currency       String   @default("CUP")
   visible        Boolean  @default(true)
   order          Int      @default(0)
@@ -548,7 +547,7 @@ model Review {
   /// Nombre visible (se publica solo el primer nombre).
   authorName String
   rating     Int      @default(5)
-  comment    String   @db.Text
+  comment    String  
   /// PENDING | APPROVED | REJECTED
   status     String   @default("PENDING")
   createdAt  DateTime @default(now())
@@ -566,9 +565,9 @@ model CheckoutIntent {
   email       String?
   phone       String?
   /// Resumen del carrito en texto ("Rosa + Cedro ×1 · Noir ×2").
-  summary     String    @db.Text
+  summary     String   
   itemCount   Int       @default(0)
-  total       Decimal   @default(0) @db.Decimal(12, 2)
+  total       Decimal   @default(0)
   currency    String    @default("CUP")
   /// OPEN | CONTACTED | RECOVERED | DISMISSED
   status      String    @default("OPEN")
@@ -616,11 +615,11 @@ model OutboxMessage {
   /// Destinatario: correo, teléfono sin signos, o el id de usuario para PUSH.
   recipient String
   subject   String    @default("")
-  body      String    @db.Text
+  body      String   
   /// PENDING | SENT | FAILED | SKIPPED
   status    String    @default("PENDING")
   /// Motivo legible del estado (por qué falló o por qué se omitió).
-  error     String?   @db.Text
+  error     String?  
   attempts  Int       @default(0)
   /// Clave de deduplicación: evita mandar dos veces el mismo aviso.
   /// Ej.: "restock:<alertId>", "repurchase:<reservationId>".
@@ -640,7 +639,7 @@ model CurrencyRateLog {
   code      String
   rate      Float
   /// JSON completo de las cotizaciones en ese momento.
-  snapshot  Json
+  snapshot  String
   createdAt DateTime @default(now())
 
   @@index([code, createdAt])

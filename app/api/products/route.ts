@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/session";
 import { normalizeProduct } from "@/lib/normalize-product";
 import { withPublicImages } from "@/lib/image-url";
 import { getRefManager, withManagerPrice } from "@/lib/manager";
+import { stringifyJson } from "@/lib/json";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -64,11 +65,11 @@ export async function GET(req: Request) {
           ? [
               {
                 OR: [
-                  { name: { contains: q, mode: "insensitive" as const } },
-                  { brand: { contains: q, mode: "insensitive" as const } },
-                  { description: { contains: q, mode: "insensitive" as const } },
-                  { notes: { contains: q, mode: "insensitive" as const } },
-                  { category: { contains: q, mode: "insensitive" as const } },
+                  { name: { contains: q } },
+                  { brand: { contains: q } },
+                  { description: { contains: q } },
+                  { notes: { contains: q } },
+                  { category: { contains: q } },
                 ],
               },
             ]
@@ -132,6 +133,7 @@ export async function POST(req: Request) {
   const product = await prisma.product.create({
     data: {
       ...parsed.data,
+      images: stringifyJson(parsed.data.images),
       currency: parsed.data.currency.toUpperCase(),
       notes: parsed.data.notes ?? null,
       categoryId: parsed.data.categoryId ?? null,
@@ -140,7 +142,7 @@ export async function POST(req: Request) {
       duration: parsed.data.duration ?? null,
       occasion: parsed.data.occasion ?? null,
       gender: parsed.data.gender ?? "UNISEX",
-      faqs: parsed.data.faqs ?? [],
+      faqs: stringifyJson(parsed.data.faqs ?? []),
     },
   });
   return NextResponse.json({ product: normalizeProduct(product) }, { status: 201 });

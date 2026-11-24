@@ -1,49 +1,35 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaD1 } from "@prisma/adapter-d1";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { Pool } from "pg";
 
 type PrismaState = {
   client?: PrismaClient;
-  connectionString?: string;
 };
+
+type D1Client = ConstructorParameters<typeof PrismaD1>[0];
 
 const state = globalThis as unknown as PrismaState;
 
-function connectionString(): string {
-  try {
-    const env = getCloudflareContext().env as unknown as {
-      HYPERDRIVE?: { connectionString?: string };
-    };
-    if (env.HYPERDRIVE?.connectionString) return env.HYPERDRIVE.connectionString;
-  } catch {}
-
-  const value = process.env.DATABASE_URL;
-  if (!value) throw new Error("Falta DATABASE_URL o el binding HYPERDRIVE de Cloudflare");
-  return value;
-}
-
-function schemaFromConnectionString(url: string): string | undefined {
-  try {
-    return new URL(url).searchParams.get("schema") || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 function getClient(): PrismaClient {
-  const url = connectionString();
-  if (state.client && state.connectionString === url) return state.client;
+  if (state.client) return state.client;
 
-  const pool = new Pool({ connectionString: url });
-  const adapter = new PrismaPg(pool, {
-    schema: schemaFromConnectionString(url),
-  });
-  const client = new PrismaClient({ adapter });
+  let env: { DB?: unknown } | undefined;
+  try {
+    env = getCloudflareContext().env as { DB?: unknown };
+  } catch {
+    env = undefined;
+  }
 
-  state.client = client;
-  state.connectionString = url;
-  return client;
+  if (env) {
+    if (!env.DB) {
+      throw new Error("Falta el binding DB de Cloudflare D1");
+    }
+    state.client = new PrismaClient({ adapter: new PrismaD1(env.DB as D1Client) });
+    return state.client;
+  }
+
+  state.client = new PrismaClient();
+  return state.client;
 }
 
 export const prisma = new Proxy({} as PrismaClient, {

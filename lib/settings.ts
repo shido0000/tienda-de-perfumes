@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { parseJson } from "./json";
 import { BASE_CURRENCY, DEFAULT_CURRENCIES, parseCurrencies, type Currency } from "./currency";
 import { LEGAL_DEFAULTS } from "./legal-defaults";
 import { DEFAULT_SITE_TEXTS, resolveSiteTexts, type SiteTexts } from "./site-texts";
@@ -127,8 +128,9 @@ export function clientSafeSettings(settings: SettingsDTO): SettingsDTO {
 }
 
 function parsePhones(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
+  const parsed = parseJson<unknown>(raw, []);
+  if (!Array.isArray(parsed)) return [];
+  return parsed
     .map((p) => String(p ?? "").replace(/[^\d]/g, ""))
     .filter((p) => p.length >= 6);
 }

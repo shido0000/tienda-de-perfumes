@@ -10,7 +10,7 @@ import { publicImages } from "@/lib/image-url";
 import { getRefManager, withManagerPrice } from "@/lib/manager";
 
 /** Convierte la galería (posiblemente base64) a URLs absolutas y cacheables. */
-function absoluteImages(productId: string, images: string[] | null | undefined, base?: string): string[] {
+function absoluteImages(productId: string, images: unknown, base?: string): string[] {
   const pub = publicImages(productId, images).filter((u) => !String(u).startsWith("data:"));
   if (!base) return pub;
   return pub.map((u) => (/^https?:\/\//i.test(u) ? u : `${base}${u.startsWith("/") ? "" : "/"}${u}`));

@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { normalizeFaqs } from "@/lib/normalize-product";
+import { publicImages } from "@/lib/image-url";
 import type { BannerDTO, ComboDTO, ProductDTO, ReservationDTO } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export default async function AdminPage() {
     compareAtPrice: p.compareAtPrice === null ? null : Number(p.compareAtPrice),
     currency: p.currency,
     costCup: p.costCup === null ? null : Number(p.costCup),
-    images: p.images,
+    images: publicImages(p.id, p.images),
     visible: p.visible,
     stock: p.stock,
     duration: p.duration,

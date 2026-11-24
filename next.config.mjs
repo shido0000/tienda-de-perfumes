@@ -5,8 +5,7 @@ const nextConfig = {
   serverExternalPackages: [
     "@prisma/client",
     ".prisma/client",
-    "@prisma/adapter-pg",
-    "pg",
+    "@prisma/adapter-d1",
     "jose",
     "pdfkit",
     "fontkit",

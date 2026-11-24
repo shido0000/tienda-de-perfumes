@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { normalizeProduct } from "@/lib/normalize-product";
+import { publicImages } from "@/lib/image-url";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export async function GET() {
     products: products.map((p) =>
       normalizeProduct({
         ...p,
+        images: publicImages(p.id, p.images),
         duration: p.duration ?? null,
         occasion: p.occasion ?? null,
         faqs: p.faqs,

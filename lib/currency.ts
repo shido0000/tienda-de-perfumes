@@ -1,3 +1,5 @@
+import { parseJson } from "./json";
+
 export type Currency = { code: string; symbol: string; rate: number; label: string };
 
 /**
@@ -20,9 +22,10 @@ export const DEFAULT_CURRENCIES: Currency[] = [
  * CUP exista siempre con tasa 1: es la moneda base contra la que se convierte.
  */
 export function parseCurrencies(raw: unknown): Currency[] {
+  const parsed = parseJson<unknown>(raw, []);
   let list: Currency[] = [];
-  if (Array.isArray(raw)) {
-    list = raw
+  if (Array.isArray(parsed)) {
+    list = parsed
       .map((c) => {
         const o = c as Partial<Currency>;
         if (!o || typeof o.code !== "string") return null;

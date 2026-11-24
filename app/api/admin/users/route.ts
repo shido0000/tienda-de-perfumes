@@ -20,8 +20,8 @@ export async function GET(req: Request) {
       ...(q
         ? {
             OR: [
-              { email: { contains: q, mode: "insensitive" } },
-              { name: { contains: q, mode: "insensitive" } },
+              { email: { contains: q } },
+              { name: { contains: q } },
               { phone: { contains: q } },
             ],
           }

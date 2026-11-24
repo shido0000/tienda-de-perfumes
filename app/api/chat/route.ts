@@ -8,6 +8,7 @@ import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { resolveAiConfig } from "@/lib/ai-config";
 import { askAi, type AiTurn } from "@/lib/chat-ai";
 import { getRefManager, markedPrice, type ManagerInfo } from "@/lib/manager";
+import { publicImages } from "@/lib/image-url";
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +146,7 @@ function toChatProduct(
     brand: string;
     price: unknown;
     currency: string;
-    images: string[];
+    images: unknown;
   },
   manager: ManagerInfo | null = null,
 ): ChatProduct {
@@ -160,7 +161,7 @@ function toChatProduct(
     name: p.name,
     brand: p.brand,
     price: formatMoney(price, p.currency),
-    image: p.images?.[0] ?? null,
+    image: publicImages(p.id, p.images)[0] ?? null,
   };
 }
 
@@ -567,11 +568,11 @@ export async function POST(req: Request) {
   const words = keywords(text);
   if (words.length > 0) {
     const or = words.flatMap((w) => [
-      { name: { contains: w, mode: "insensitive" as const } },
-      { brand: { contains: w, mode: "insensitive" as const } },
-      { category: { contains: w, mode: "insensitive" as const } },
-      { notes: { contains: w, mode: "insensitive" as const } },
-      { description: { contains: w, mode: "insensitive" as const } },
+      { name: { contains: w } },
+      { brand: { contains: w } },
+      { category: { contains: w } },
+      { notes: { contains: w } },
+      { description: { contains: w } },
     ]);
     const found = await prisma.product.findMany({
       where: { visible: true, OR: or },

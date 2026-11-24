@@ -1,3 +1,5 @@
+import { parseJson } from "./json";
+
 /**
  * Textos del sitio editables desde Administración → Contenido.
  *
@@ -615,8 +617,9 @@ export const SITE_TEXT_FIELDS: SiteTextField[] = [
  */
 export function resolveSiteTexts(raw: unknown): SiteTexts {
   const base = { ...DEFAULT_SITE_TEXTS } as SiteTexts;
-  if (!raw || typeof raw !== "object") return base;
-  const obj = raw as Record<string, unknown>;
+  const parsed = parseJson<unknown>(raw, null);
+  if (!parsed || typeof parsed !== "object") return base;
+  const obj = parsed as Record<string, unknown>;
   for (const key of Object.keys(DEFAULT_SITE_TEXTS) as SiteTextKey[]) {
     const value = obj[key];
     if (typeof value === "string" && value.trim().length > 0) {
@@ -629,8 +632,9 @@ export function resolveSiteTexts(raw: unknown): SiteTexts {
 /** Devuelve sólo las claves conocidas y no vacías, listas para guardar. */
 export function sanitizeSiteTexts(raw: unknown): Partial<SiteTexts> {
   const out: Partial<SiteTexts> = {};
-  if (!raw || typeof raw !== "object") return out;
-  const obj = raw as Record<string, unknown>;
+  const parsed = parseJson<unknown>(raw, null);
+  if (!parsed || typeof parsed !== "object") return out;
+  const obj = parsed as Record<string, unknown>;
   for (const key of Object.keys(DEFAULT_SITE_TEXTS) as SiteTextKey[]) {
     const value = obj[key];
     if (typeof value === "string") out[key] = value.trim().slice(0, 400);

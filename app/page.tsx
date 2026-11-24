@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { ensureReady } from "@/lib/bootstrap";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/session";
-import { publicImageUrl } from "@/lib/image-url";
+import { publicImages } from "@/lib/image-url";
 import { DEFAULT_SITE_TEXTS } from "@/lib/site-texts";
 import { CatalogGrid } from "@/components/CatalogGrid";
 import { Hero } from "@/components/Hero";
@@ -39,7 +39,7 @@ async function loadCatalog(manager: ManagerInfo | null): Promise<ProductDTO[]> {
       currency: p.currency,
       // La tarjeta solo muestra la primera foto: la servimos por /api/img para
       // que el navegador la cachee y el HTML no cargue megabytes en base64.
-      images: p.images.length ? [publicImageUrl(p.id, 0, p.images[0])] : [],
+      images: publicImages(p.id, p.images).slice(0, 1),
       visible: p.visible,
       stock: p.stock,
     }))

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { parseJson } from "@/lib/json";
 
 /**
  * Sirve una foto de producto desde la base con caché agresiva.
@@ -33,7 +34,8 @@ export async function GET(
     .findUnique({ where: { id: productId }, select: { images: true } })
     .catch(() => null);
 
-  const url = product?.images?.[imageIndex];
+  const images = parseJson<string[]>(product?.images, []);
+  const url = Array.isArray(images) ? images[imageIndex] : undefined;
   if (!url) {
     return new Response("Imagen no encontrada", { status: 404 });
   }
