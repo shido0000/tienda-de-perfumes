@@ -61,6 +61,9 @@
     "postcss": "8.5.33",
     "glob": "14.0.6"
   },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "prisma": {
     "seed": "node -e \"console.log('Seed desactivado: la base de producción ya tiene los datos reales. No se cargan datos de ejemplo.')\""
   }

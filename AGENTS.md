@@ -10,6 +10,7 @@
 
 ## Setup and commands
 
+- Node: use `22.12.0` or newer (`.nvmrc`); Wrangler 4.166 requires at least Node `22.12.0`.
 - Install: `npm install` (if dependency resolution stalls, use `npm install --legacy-peer-deps`).
 - Local dev: `npm run dev` (`http://localhost:3000`).
 - Vercel build: `npm run build` runs `prisma generate`, then `next build`. It never touches the database.
