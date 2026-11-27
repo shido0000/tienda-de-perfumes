@@ -47,10 +47,11 @@ export default async function AdminPage() {
   }
 
   const [productRows, reservationRows, settings, comboRows, bannerRows] = await Promise.all([
-    prisma.product.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.product.findMany({ orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.reservation.findMany({
       include: { items: true, user: { select: { email: true, name: true, phone: true } } },
       orderBy: { createdAt: "desc" },
+      take: 100,
     }),
     getSettings(),
     prisma.combo
@@ -61,10 +62,11 @@ export default async function AdminPage() {
             include: { product: { select: { name: true, brand: true, stock: true } } },
           },
         },
+        take: 100,
       })
       .catch(() => []),
     prisma.banner
-      .findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }] })
+      .findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }], take: 100 })
       .catch(() => []),
   ]);
 

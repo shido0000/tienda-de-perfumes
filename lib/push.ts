@@ -17,12 +17,14 @@ import { logoSrc } from "./pwa-icons";
 type Vapid = { publicKey: string; privateKey: string };
 
 const FALLBACK_SUBJECT = "mailto:avisos@example.com";
+let cachedVapid: Vapid | null = null;
+let vapidInFlight: Promise<Vapid | null> | null = null;
 
 /**
  * Devuelve las claves VAPID, creándolas y guardándolas si todavía no existen.
  * Devuelve null solo si la base falla, para no romper la petición del panel.
  */
-export async function getVapidKeys(): Promise<Vapid | null> {
+async function loadVapidKeys(): Promise<Vapid | null> {
   const envPublic = process.env.VAPID_PUBLIC_KEY?.trim();
   const envPrivate = process.env.VAPID_PRIVATE_KEY?.trim();
   if (envPublic && envPrivate) return { publicKey: envPublic, privateKey: envPrivate };
@@ -53,6 +55,19 @@ export async function getVapidKeys(): Promise<Vapid | null> {
   } catch (error) {
     console.error("[push] no se pudieron obtener las claves:", (error as Error).message);
     return null;
+  }
+}
+
+export async function getVapidKeys(): Promise<Vapid | null> {
+  if (cachedVapid) return cachedVapid;
+  const pending = vapidInFlight ?? loadVapidKeys();
+  vapidInFlight = pending;
+  try {
+    const keys = await pending;
+    if (keys) cachedVapid = keys;
+    return keys;
+  } finally {
+    if (vapidInFlight === pending) vapidInFlight = null;
   }
 }
 

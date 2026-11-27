@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { processOutbox, retryMessage } from "@/lib/outbox";
 import { resolveEmailConfig, sendEmail } from "@/lib/email";
+import { invalidateSettingsCache } from "@/lib/settings";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -105,6 +106,7 @@ export async function PUT(req: Request) {
     update: data,
     create: { id: "singleton", ...data },
   });
+  invalidateSettingsCache();
 
   const emailConfig = await resolveEmailConfig().catch(() => null);
   return NextResponse.json({

@@ -34,6 +34,8 @@ const FALLBACK_ICONS: PwaIcon[] = [
 ];
 
 const FALLBACK_APPLE = "/icons/apple-touch-icon.png";
+let lastLogoRaw: string | null = null;
+let lastLogoVersion = "0";
 
 /**
  * Huella corta del logo. Cambia apenas cambia la imagen, así las URLs de los
@@ -41,23 +43,24 @@ const FALLBACK_APPLE = "/icons/apple-touch-icon.png";
  */
 export function logoVersion(logoUrl?: string | null): string {
   if (!logoUrl) return "0";
-  // FNV-1a de 32 bits: suficiente para distinguir dos logos y estable entre
-  // servidor y cliente (no depende de crypto ni de la longitud del texto).
+  if (logoUrl === lastLogoRaw) return lastLogoVersion;
   let hash = 2166136261;
   for (let i = 0; i < logoUrl.length; i++) {
     hash ^= logoUrl.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
-  return (hash >>> 0).toString(36);
+  lastLogoRaw = logoUrl;
+  lastLogoVersion = (hash >>> 0).toString(36);
+  return lastLogoVersion;
 }
 
 /** URL descargable del logo, versionada para que el ícono se refresque solo. */
-export function logoSrc(logoUrl?: string | null): string {
+export function logoSrc(logoUrl?: string | null, version?: string): string {
   const raw = (logoUrl ?? "").trim();
   if (!raw) return "";
   const base = raw.startsWith("data:") ? "/api/logo" : raw;
   const sep = base.includes("?") ? "&" : "?";
-  return `${base}${sep}v=${logoVersion(raw)}`;
+  return `${base}${sep}v=${version ?? logoVersion(raw)}`;
 }
 
 /**
@@ -93,7 +96,7 @@ export function manifestIcons(logoUrl?: string | null): PwaIcon[] {
 }
 
 /** Ícono que usa iOS al "Agregar a pantalla de inicio" (180×180, sin margen). */
-export function appleTouchIcon(logoUrl?: string | null): string {
+export function appleTouchIcon(logoUrl?: string | null, version?: string): string {
   const raw = (logoUrl ?? "").trim();
-  return raw ? `${logoSrc(raw)}&size=180` : FALLBACK_APPLE;
+  return raw ? `${logoSrc(raw, version)}&size=180` : FALLBACK_APPLE;
 }

@@ -22,25 +22,26 @@ export async function GET() {
       where: {
         status: "PENDING",
         createdAt: { lt: cutoff },
+        paymentMethod: "TRANSFER",
+        transferProofUrl: null,
       },
       orderBy: { createdAt: "asc" },
+      take: 50,
       include: {
         items: { select: { name: true } },
         user: { select: { name: true, email: true, phone: true } },
       },
     }),
     prisma.product.findMany({
-      where: { stock: { not: null } },
+      where: { stock: { lte: 2 } },
       select: { id: true, name: true, stock: true },
+      orderBy: { stock: "asc" },
+      take: 20,
     }),
   ]);
 
-  const needsProof = reservations.filter(
-    (r) => r.paymentMethod === "TRANSFER" && !r.transferProofUrl,
-  );
-
   return NextResponse.json({
-    reservations: needsProof.map((r) => ({
+    reservations: reservations.map((r) => ({
       id: r.id,
       code: r.code,
       customer: r.user.name || r.user.email,

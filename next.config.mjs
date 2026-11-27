@@ -10,6 +10,7 @@ const nextConfig = {
     "pdfkit",
     "fontkit",
     "web-push",
+    "sharp",
   ],
   images: {
     unoptimized: true,

@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 export type Currency = { code: string; symbol: string; rate: number; label: string };
 
 import type { SiteTexts } from "./site-texts";
+import type { SessionUser } from "./session";
 import { trackUrl } from "./manager-client";
 
 export type StoreSettings = {
@@ -93,10 +94,16 @@ function readLocal(): CartLine[] {
  * (persisted in Postgres). The local copy is always the render source so the UI
  * never flickers; when a session exists we mirror changes to the server.
  */
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({
+  children,
+  initialUser,
+}: {
+  children: React.ReactNode;
+  initialUser?: SessionUser | null;
+}) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
+  const [signedIn, setSignedIn] = useState(Boolean(initialUser));
 
   useEffect(() => {
     setLines(readLocal());
@@ -104,10 +111,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const me = await fetch("/api/auth/me").then((r) => r.ok);
-        if (cancelled) return;
-        setSignedIn(me);
-        if (!me) return;
+        let authenticated = Boolean(initialUser);
+        if (initialUser === undefined) {
+          authenticated = await fetch("/api/auth/me").then((r) => r.ok);
+          if (cancelled) return;
+          setSignedIn(authenticated);
+        }
+        if (!authenticated) return;
         const data = await fetch("/api/cart").then((r) => r.json());
         const serverLines: CartLine[] = (data.items ?? [])
           .filter((i: any) => i.product)
@@ -131,7 +141,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialUser]);
 
   useEffect(() => {
     if (!ready) return;

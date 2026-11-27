@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
-import { convert } from "@/lib/currency";
+import { BASE_CURRENCY, round2 } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
-/** Ventana de días admitida para el gráfico de ventas. */
 const RANGES = [7, 14, 30, 90] as const;
 type Range = (typeof RANGES)[number];
 
@@ -15,14 +14,10 @@ function parseRange(value: string | null): Range {
   return (RANGES as readonly number[]).includes(n) ? (n as Range) : 14;
 }
 
-/**
- * Estadísticas del panel.
- *
- * TODOS los importes (ingresos, ticket medio, inventario, margen, gráfico de
- * ventas y ranking por categoría) se expresan en la moneda que el dueño elige
- * para el panel — `displayCurrency`, la misma de la tienda. Los campos *Usd se
- * mantienen porque el reporte impreso/PDF los usa como referencia interna.
- */
+function countTotal(groups: { _count: { _all: number } }[]): number {
+  return groups.reduce((sum, group) => sum + group._count._all, 0);
+}
+
 export async function GET(request: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
@@ -30,131 +25,149 @@ export async function GET(request: Request) {
   const settings = await getSettings();
   const url = new URL(request.url);
   const range = parseRange(url.searchParams.get("days"));
+  const display = settings.displayCurrency;
 
-  // Moneda del panel: el dueño puede mirar TODAS las estadísticas en cualquier
-  // moneda que tenga configurada, sin cambiarla para la tienda. Si no pide
-  // ninguna (o pide una que ya no existe), se usa la moneda de visualización.
-  const requested = (url.searchParams.get("currency") ?? "").toUpperCase();
-  const known = new Set(settings.currencies.map((c) => c.code.toUpperCase()));
-  const display = known.has(requested) ? requested : settings.displayCurrency;
+  const rateByCode = new Map(settings.currencies.map((c) => [c.code.toUpperCase(), c.rate]));
+  const fallbackRate = rateByCode.get(BASE_CURRENCY) ?? 1;
+  const rateOf = (code: string) => rateByCode.get(code.toUpperCase()) ?? fallbackRate;
+  const convertFast = (amount: unknown, from: string, to: string) => {
+    const value = Number(amount);
+    if (!Number.isFinite(value)) return 0;
+    if (from === to) return value;
+    return (value * rateOf(from)) / rateOf(to);
+  };
 
-  const [reservations, products, users, categories] = await Promise.all([
-    prisma.reservation.findMany({
-      select: {
-        id: true,
-        status: true,
-        currency: true,
-        total: true,
-        createdAt: true,
-        deliveryType: true,
-        paymentMethod: true,
-        items: {
-          select: { name: true, quantity: true, orderCurrency: true, priceConverted: true },
+  const now = new Date();
+  const since = new Date(now);
+  since.setDate(now.getDate() - range);
+  const sinceItems = new Date(now);
+  sinceItems.setDate(now.getDate() - 30);
+  const since30 = new Date(now);
+  since30.setDate(now.getDate() - 30);
+  const paidWhere = { status: { not: "CANCELLED" } };
+
+  const [statusGroups, deliveryGroups, paymentGroups, revenueGroups, rangeRows, itemRows, products, userCount, adminCount, newUsers30, categories] =
+    await Promise.all([
+      prisma.reservation.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.reservation.groupBy({ by: ["deliveryType"], _count: { _all: true } }),
+      prisma.reservation.groupBy({ by: ["paymentMethod"], _count: { _all: true } }),
+      prisma.reservation.groupBy({
+        by: ["currency"],
+        where: paidWhere,
+        _sum: { total: true },
+        _count: { _all: true },
+      }),
+      prisma.reservation.findMany({
+        where: { ...paidWhere, createdAt: { gte: since } },
+        select: { total: true, currency: true, createdAt: true },
+      }),
+      prisma.reservationItem.findMany({
+        where: { reservation: { ...paidWhere, createdAt: { gte: sinceItems } } },
+        select: {
+          name: true,
+          brand: true,
+          productId: true,
+          quantity: true,
+          orderCurrency: true,
+          priceConverted: true,
         },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.product.findMany({
-      select: {
-        id: true,
-        name: true,
-        brand: true,
-        category: true,
-        stock: true,
-        visible: true,
-        price: true,
-        costCup: true,
-        currency: true,
-      },
-    }),
-    prisma.user.findMany({ select: { id: true, createdAt: true, role: true } }),
-    prisma.category.count(),
-  ]);
-
-  const toUsd = (amount: number, from: string) =>
-    convert(amount, from, "USD", settings.currencies);
-  const toDisplay = (amount: number, from: string) =>
-    convert(amount, from, display, settings.currencies);
-  /** Un importe ya en USD (como el costo de inventario) a la moneda del panel. */
-  const usdToDisplay = (amount: number) => convert(amount, "USD", display, settings.currencies);
-
-  const paid = reservations.filter((r) => r.status !== "CANCELLED");
-
-  const revenue = paid.reduce((s, r) => s + toDisplay(Number(r.total), r.currency), 0);
-  const revenueUsd = paid.reduce((s, r) => s + toUsd(Number(r.total), r.currency), 0);
-  const avgTicket = paid.length ? revenueUsd / paid.length : 0;
-  const avgTicketDisplay = paid.length ? revenue / paid.length : 0;
+        take: 5000,
+      }),
+      prisma.product.findMany({
+        select: {
+          id: true,
+          name: true,
+          brand: true,
+          category: true,
+          stock: true,
+          visible: true,
+          price: true,
+          costCup: true,
+          currency: true,
+        },
+      }),
+      prisma.user.count(),
+      prisma.user.count({ where: { role: "ADMIN" } }),
+      prisma.user.count({ where: { createdAt: { gte: since30 } } }),
+      prisma.category.count(),
+    ]);
 
   const byStatus: Record<string, number> = {};
-  for (const r of reservations) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
-
+  for (const group of statusGroups) byStatus[group.status] = group._count._all;
   const byDelivery: Record<string, number> = {};
+  for (const group of deliveryGroups) byDelivery[group.deliveryType] = group._count._all;
   const byPayment: Record<string, number> = {};
-  for (const r of reservations) {
-    byDelivery[r.deliveryType] = (byDelivery[r.deliveryType] ?? 0) + 1;
-    byPayment[r.paymentMethod] = (byPayment[r.paymentMethod] ?? 0) + 1;
-  }
+  for (const group of paymentGroups) byPayment[group.paymentMethod] = group._count._all;
 
-  // Ventas por día en la moneda del panel, para la ventana pedida (7/14/30/90).
-  const days: { date: string; total: number; count: number }[] = [];
+  const revenue = revenueGroups.reduce(
+    (sum, group) => sum + convertFast(group._sum.total ?? 0, group.currency, display),
+    0,
+  );
+  const revenueUsd = revenueGroups.reduce(
+    (sum, group) => sum + convertFast(group._sum.total ?? 0, group.currency, "USD"),
+    0,
+  );
+  const paidCount = countTotal(revenueGroups);
+  const avgTicket = paidCount ? revenueUsd / paidCount : 0;
+  const avgTicketDisplay = paidCount ? revenue / paidCount : 0;
+  const totalReservations = countTotal(statusGroups);
+
   const bucket = new Map<string, { total: number; count: number }>();
-  for (const r of paid) {
-    const key = r.createdAt.toISOString().slice(0, 10);
+  for (const row of rangeRows) {
+    const key = row.createdAt.toISOString().slice(0, 10);
     const prev = bucket.get(key) ?? { total: 0, count: 0 };
     bucket.set(key, {
-      total: prev.total + toDisplay(Number(r.total), r.currency),
+      total: prev.total + convertFast(row.total, row.currency, display),
       count: prev.count + 1,
     });
   }
-  const today = new Date();
+  const days: { date: string; total: number; count: number }[] = [];
   for (let i = range - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const b = bucket.get(key);
-    days.push({ date: key, total: Math.round((b?.total ?? 0) * 100) / 100, count: b?.count ?? 0 });
+    const date = new Date(now);
+    date.setDate(now.getDate() - i);
+    const key = date.toISOString().slice(0, 10);
+    const found = bucket.get(key);
+    days.push({
+      date: key,
+      total: round2(found?.total ?? 0),
+      count: found?.count ?? 0,
+    });
   }
 
-  // Ranking de productos, marcas y categorías vendidas.
+  const productById = new Map(products.map((p) => [p.id, p]));
   const soldMap = new Map<string, number>();
   const brandMap = new Map<string, number>();
   const catMap = new Map<string, { quantity: number; revenueUsd: number; revenueDisplay: number }>();
-  const productBrand = new Map(products.map((p) => [p.name, p.brand]));
-  const productCat = new Map(products.map((p) => [p.name, p.category]));
-  for (const r of paid) {
-    for (const it of r.items) {
-      soldMap.set(it.name, (soldMap.get(it.name) ?? 0) + it.quantity);
-      const brand = productBrand.get(it.name);
-      if (brand) brandMap.set(brand, (brandMap.get(brand) ?? 0) + it.quantity);
-      const cat = productCat.get(it.name) ?? "Sin categoría";
-      const prev = catMap.get(cat) ?? { quantity: 0, revenueUsd: 0, revenueDisplay: 0 };
-      catMap.set(cat, {
-        quantity: prev.quantity + it.quantity,
-        revenueUsd:
-          prev.revenueUsd + toUsd(Number(it.priceConverted), it.orderCurrency) * it.quantity,
-        revenueDisplay:
-          prev.revenueDisplay +
-          toDisplay(Number(it.priceConverted), it.orderCurrency) * it.quantity,
-      });
-    }
+  for (const item of itemRows) {
+    const product = item.productId ? productById.get(item.productId) : undefined;
+    const brand = product?.brand ?? item.brand;
+    const category = product?.category ?? "Sin categoría";
+    soldMap.set(item.name, (soldMap.get(item.name) ?? 0) + item.quantity);
+    brandMap.set(brand, (brandMap.get(brand) ?? 0) + item.quantity);
+    const previous = catMap.get(category) ?? { quantity: 0, revenueUsd: 0, revenueDisplay: 0 };
+    const itemRevenueUsd = convertFast(item.priceConverted, item.orderCurrency, "USD") * item.quantity;
+    const itemRevenueDisplay = convertFast(item.priceConverted, item.orderCurrency, display) * item.quantity;
+    catMap.set(category, {
+      quantity: previous.quantity + item.quantity,
+      revenueUsd: previous.revenueUsd + itemRevenueUsd,
+      revenueDisplay: previous.revenueDisplay + itemRevenueDisplay,
+    });
   }
 
   const topProducts = [...soldMap.entries()]
     .map(([name, quantity]) => ({ name, quantity }))
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 6);
-
   const topBrands = [...brandMap.entries()]
     .map(([name, quantity]) => ({ name, quantity }))
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 5);
-
   const topCategories = [...catMap.entries()]
-    .map(([name, v]) => ({
+    .map(([name, value]) => ({
       name,
-      quantity: v.quantity,
-      revenueUsd: Math.round(v.revenueUsd * 100) / 100,
-      revenueDisplay: Math.round(v.revenueDisplay * 100) / 100,
+      quantity: value.quantity,
+      revenueUsd: round2(value.revenueUsd),
+      revenueDisplay: round2(value.revenueDisplay),
     }))
     .sort((a, b) => b.revenueDisplay - a.revenueDisplay)
     .slice(0, 5);
@@ -162,60 +175,53 @@ export async function GET(request: Request) {
   const lowStock = products
     .filter((p) => p.stock !== null && p.stock <= 3)
     .map((p) => ({ id: p.id, name: p.name, stock: p.stock ?? 0 }))
-    .sort((a, b) => a.stock - b.stock);
+    .sort((a, b) => a.stock - b.stock)
+    .slice(0, 10);
 
-  // Valor del inventario a precio de venta y al costo, en la moneda del panel.
-  // El costo de compra se carga en CUP, igual que el precio de venta.
   const inventoryCostCup = products.reduce(
-    (s, p) => s + Number(p.costCup ?? 0) * (p.stock ?? 0),
+    (sum, p) => sum + Number(p.costCup ?? 0) * (p.stock ?? 0),
     0,
   );
   const inventoryRetailUsd = products.reduce(
-    (s, p) => s + (p.stock ? toUsd(Number(p.price), p.currency) * p.stock : 0),
+    (sum, p) =>
+      sum + (p.stock ? convertFast(p.price, p.currency, "USD") * p.stock : 0),
     0,
   );
-  const inventoryCostUsd = toUsd(inventoryCostCup, "CUP");
-  const inventoryCost = toDisplay(inventoryCostCup, "CUP");
-  const inventoryRetail = usdToDisplay(inventoryRetailUsd);
-
-  const since30 = new Date(today);
-  since30.setDate(today.getDate() - 30);
-  const newUsers30 = users.filter((u) => u.createdAt >= since30).length;
-
-  const rangeRevenueUsd = days.reduce((s, d) => s + d.total, 0);
-  const rangeCount = days.reduce((s, d) => s + d.count, 0);
-  const rangeRevenue = rangeRevenueUsd;
+  const inventoryCostUsd = convertFast(inventoryCostCup, "CUP", "USD");
+  const inventoryCost = convertFast(inventoryCostCup, "CUP", display);
+  const inventoryRetail = convertFast(inventoryRetailUsd, "USD", display);
+  const rangeRevenue = round2(days.reduce((sum, day) => sum + day.total, 0));
+  const rangeCount = days.reduce((sum, day) => sum + day.count, 0);
 
   return NextResponse.json({
     currency: display,
-    /** Monedas que el dueño puede elegir para mirar las estadísticas. */
     currencies: settings.currencies.map((c) => ({ code: c.code, symbol: c.symbol, label: c.label })),
     defaultCurrency: settings.displayCurrency,
     range,
     ranges: RANGES,
     cards: {
-      revenue,
-      revenueUsd,
-      avgTicket: Math.round(avgTicketDisplay * 100) / 100,
-      avgTicketUsd: Math.round(avgTicket * 100) / 100,
-      reservations: reservations.length,
+      revenue: round2(revenue),
+      revenueUsd: round2(revenueUsd),
+      avgTicket: round2(avgTicketDisplay),
+      avgTicketUsd: round2(avgTicket),
+      reservations: totalReservations,
       pending: byStatus.PENDING ?? 0,
       confirmed: byStatus.CONFIRMED ?? 0,
       delivered: byStatus.DELIVERED ?? 0,
       cancelled: byStatus.CANCELLED ?? 0,
-      users: users.length,
-      admins: users.filter((u) => u.role === "ADMIN").length,
+      users: userCount,
+      admins: adminCount,
       newUsers30,
       products: products.length,
       hiddenProducts: products.filter((p) => !p.visible).length,
       categories,
       lowStock: lowStock.length,
-      inventoryCostUsd: Math.round(inventoryCostUsd * 100) / 100,
-      inventoryRetailUsd: Math.round(inventoryRetailUsd * 100) / 100,
-      inventoryCost: Math.round(inventoryCost * 100) / 100,
-      inventoryRetail: Math.round(inventoryRetail * 100) / 100,
-      rangeRevenue: Math.round(rangeRevenue * 100) / 100,
-      rangeRevenueUsd: Math.round(rangeRevenueUsd * 100) / 100,
+      inventoryCostUsd: round2(inventoryCostUsd),
+      inventoryRetailUsd: round2(inventoryRetailUsd),
+      inventoryCost: round2(inventoryCost),
+      inventoryRetail: round2(inventoryRetail),
+      rangeRevenue,
+      rangeRevenueUsd: rangeRevenue,
       rangeCount,
     },
     byStatus,

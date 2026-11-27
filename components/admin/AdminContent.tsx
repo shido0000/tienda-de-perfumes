@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Upload, Trash, FloppyDisk } from "@phosphor-icons/react/dist/ssr";
 import { useToast } from "@/components/ui/ToastProvider";
 import { SITE_TEXT_FIELDS } from "@/lib/site-texts";
@@ -42,7 +41,6 @@ const LEGAL_TABS = [
  * inmediato, sin tocar código.
  */
 export function AdminContent({ initial }: { initial: ContentForm }) {
-  const router = useRouter();
   const [form, setForm] = useState<ContentForm>(initial);
   const [legalTab, setLegalTab] = useState<(typeof LEGAL_TABS)[number]["key"]>("termsText");
   const [busy, setBusy] = useState(false);
@@ -147,9 +145,6 @@ export function AdminContent({ initial }: { initial: ContentForm }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No se pudo guardar el contenido.");
       toast.success("Contenido guardado", "La web pública ya muestra estos cambios.");
-      // El encabezado y la portada se pintan en el servidor: sin refrescar, el
-      // logo nuevo no aparecía hasta recargar a mano (parecía que no se guardó).
-      router.refresh();
       // La app instalada guarda en caché el logo/ícono: le pedimos al service
       // worker que borre esa caché para que tome el ícono nuevo (cambia la URL
       // con ?v= y se actualiza solo, sin reinstalar).

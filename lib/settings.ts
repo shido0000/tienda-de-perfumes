@@ -3,6 +3,7 @@ import { parseJson } from "./json";
 import { BASE_CURRENCY, DEFAULT_CURRENCIES, parseCurrencies, type Currency } from "./currency";
 import { LEGAL_DEFAULTS } from "./legal-defaults";
 import { DEFAULT_SITE_TEXTS, resolveSiteTexts, type SiteTexts } from "./site-texts";
+import { logoVersion } from "./pwa-icons";
 
 export type SettingsDTO = {
   brand: string;
@@ -123,7 +124,9 @@ export function clientSafeSettings(settings: SettingsDTO): SettingsDTO {
     typeof v === "string" && v.startsWith("data:");
   return {
     ...settings,
-    logoUrl: isDataUrl(settings.logoUrl) ? "/api/logo" : settings.logoUrl,
+    logoUrl: isDataUrl(settings.logoUrl)
+      ? `/api/logo?v=${logoVersion(settings.logoUrl)}`
+      : settings.logoUrl,
   };
 }
 
@@ -141,15 +144,16 @@ function textOr(value: string | null | undefined, fallback: string): string {
   return trimmed.length ? (value as string) : fallback;
 }
 
-/**
- * Una sola fuente de verdad para la configuración de la tienda. Ninguna
- * pantalla debe escribir un número o un texto que el administrador pueda
- * cambiar.
- *
- * Nunca lanza: si la tabla no existe todavía (base fría en el primer deploy),
- * devuelve FALLBACK_SETTINGS para que la página se vea, no que explote.
- */
-export async function getSettings(): Promise<SettingsDTO> {
+const SETTINGS_TTL_MS = 1000;
+let settingsCache: { at: number; value: SettingsDTO } | null = null;
+let settingsInFlight: Promise<{ value: SettingsDTO; cacheable: boolean }> | null = null;
+
+export function invalidateSettingsCache(): void {
+  settingsCache = null;
+  settingsInFlight = null;
+}
+
+async function loadSettings(): Promise<{ value: SettingsDTO; cacheable: boolean }> {
   try {
     let row = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
     if (!row) {
@@ -160,54 +164,75 @@ export async function getSettings(): Promise<SettingsDTO> {
       ? row.displayCurrency
       : BASE_CURRENCY;
     return {
-      brand: row.brand || FALLBACK_SETTINGS.brand,
-      tagline: row.tagline ?? "",
-      bankDetails: row.bankDetails || FALLBACK_SETTINGS.bankDetails,
-      whatsapp: row.whatsapp,
-      whatsappDisplay: row.whatsappDisplay,
-      storeAddress: row.storeAddress,
-      storeLat: row.storeLat,
-      storeLng: row.storeLng,
-      baseRate: Number(row.baseRate),
-      perKm: Number(row.perKm),
-      maxRadius: row.maxRadius,
-      baseCurrency: row.baseCurrency || BASE_CURRENCY,
-      displayCurrency,
-      showSecondCurrency: row.showSecondCurrency ?? false,
-      secondCurrency: currencies.some((c) => c.code === row.secondCurrency)
-        ? row.secondCurrency
-        : "USD",
-      showStock: row.showStock ?? true,
-      currencies,
-      notificationPhones: parsePhones(row.notificationPhones),
-      logoUrl: row.logoUrl?.trim() ? row.logoUrl : null,
-      termsText: textOr(row.termsText, LEGAL_DEFAULTS.termsText),
-      privacyText: textOr(row.privacyText, LEGAL_DEFAULTS.privacyText),
-      cookiesText: textOr(row.cookiesText, LEGAL_DEFAULTS.cookiesText),
-      reservationsText: textOr(row.reservationsText, LEGAL_DEFAULTS.reservationsText),
-      catalogTitle: row.catalogTitle || FALLBACK_SETTINGS.catalogTitle,
-      catalogIntro: row.catalogIntro ?? FALLBACK_SETTINGS.catalogIntro,
-      heroTitle: row.heroTitle ?? "",
-      heroSubtitle: row.heroSubtitle ?? "",
-      siteTexts: resolveSiteTexts(row.siteTexts),
-      seoTitle: row.seoTitle || FALLBACK_SETTINGS.seoTitle,
-      seoDescription: row.seoDescription || FALLBACK_SETTINGS.seoDescription,
-      seoKeywords: row.seoKeywords || FALLBACK_SETTINGS.seoKeywords,
-      siteUrl: row.siteUrl ?? "",
-      googleSiteVerification: row.googleSiteVerification ?? "",
-      autoRestockEnabled: row.autoRestockEnabled ?? true,
-      autoRepurchaseEnabled: row.autoRepurchaseEnabled ?? true,
-      repurchaseDays: row.repurchaseDays ?? 60,
-      emailConfigured: Boolean(
-        (row.emailApiKey && row.emailApiKey.trim()) ||
-          process.env.RESEND_API_KEY ||
-          process.env.BREVO_API_KEY,
-      ),
-      emailFrom: row.emailFrom ?? "",
+      value: {
+        brand: row.brand || FALLBACK_SETTINGS.brand,
+        tagline: row.tagline ?? "",
+        bankDetails: row.bankDetails || FALLBACK_SETTINGS.bankDetails,
+        whatsapp: row.whatsapp,
+        whatsappDisplay: row.whatsappDisplay,
+        storeAddress: row.storeAddress,
+        storeLat: row.storeLat,
+        storeLng: row.storeLng,
+        baseRate: Number(row.baseRate),
+        perKm: Number(row.perKm),
+        maxRadius: row.maxRadius,
+        baseCurrency: row.baseCurrency || BASE_CURRENCY,
+        displayCurrency,
+        showSecondCurrency: row.showSecondCurrency ?? false,
+        secondCurrency: currencies.some((c) => c.code === row.secondCurrency)
+          ? row.secondCurrency
+          : "USD",
+        showStock: row.showStock ?? true,
+        currencies,
+        notificationPhones: parsePhones(row.notificationPhones),
+        logoUrl: row.logoUrl?.trim() ? row.logoUrl : null,
+        termsText: textOr(row.termsText, LEGAL_DEFAULTS.termsText),
+        privacyText: textOr(row.privacyText, LEGAL_DEFAULTS.privacyText),
+        cookiesText: textOr(row.cookiesText, LEGAL_DEFAULTS.cookiesText),
+        reservationsText: textOr(row.reservationsText, LEGAL_DEFAULTS.reservationsText),
+        catalogTitle: row.catalogTitle || FALLBACK_SETTINGS.catalogTitle,
+        catalogIntro: row.catalogIntro ?? FALLBACK_SETTINGS.catalogIntro,
+        heroTitle: row.heroTitle ?? "",
+        heroSubtitle: row.heroSubtitle ?? "",
+        siteTexts: resolveSiteTexts(row.siteTexts),
+        seoTitle: row.seoTitle || FALLBACK_SETTINGS.seoTitle,
+        seoDescription: row.seoDescription || FALLBACK_SETTINGS.seoDescription,
+        seoKeywords: row.seoKeywords || FALLBACK_SETTINGS.seoKeywords,
+        siteUrl: row.siteUrl ?? "",
+        googleSiteVerification: row.googleSiteVerification ?? "",
+        autoRestockEnabled: row.autoRestockEnabled ?? true,
+        autoRepurchaseEnabled: row.autoRepurchaseEnabled ?? true,
+        repurchaseDays: row.repurchaseDays ?? 60,
+        emailConfigured: Boolean(
+          (row.emailApiKey && row.emailApiKey.trim()) ||
+            process.env.RESEND_API_KEY ||
+            process.env.BREVO_API_KEY,
+        ),
+        emailFrom: row.emailFrom ?? "",
+      },
+      cacheable: true,
     };
   } catch (error) {
     console.error("[settings] usando valores por defecto:", (error as Error).message);
-    return FALLBACK_SETTINGS;
+    return { value: FALLBACK_SETTINGS, cacheable: false };
+  }
+}
+
+export async function getSettings(): Promise<SettingsDTO> {
+  const now = Date.now();
+  if (settingsCache && now - settingsCache.at < SETTINGS_TTL_MS) {
+    return settingsCache.value;
+  }
+  const pending = settingsInFlight ?? loadSettings();
+  settingsInFlight = pending;
+  try {
+    const loaded = await pending;
+    if (loaded.cacheable) {
+      settingsCache = { at: Date.now(), value: loaded.value };
+    }
+    return loaded.value;
+  } finally {
+    if (settingsInFlight === pending) settingsInFlight = null;
   }
 }
 

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/session";
 import { isAiProvider } from "@/lib/chat-ai";
 import { resolveAiConfig, toSafeAiConfig } from "@/lib/ai-config";
 import { askAi } from "@/lib/chat-ai";
+import { invalidateSettingsCache } from "@/lib/settings";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export async function PUT(req: Request) {
     update: data,
     create: { id: "singleton", ...data },
   });
+  invalidateSettingsCache();
 
   const status = await resolveAiConfig();
   return NextResponse.json({ ai: toSafeAiConfig(status) });

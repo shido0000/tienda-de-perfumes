@@ -123,45 +123,30 @@ export function AdminPanel({
   // datos que no llegan por props (categorías) y para que los contadores de las
   // pestañas no queden viejos después de guardar algo.
   const [refreshKey, setRefreshKey] = useState(0);
+  const lastRefreshAt = useRef(0);
 
   /**
-   * El panel guarda en una pestaña y muestra los datos en otra: los props de
-   * /admin vienen del servidor y no se vuelven a pedir solos, así que al
-   * cambiar de pestaña (o al volver a la ventana) se refresca el árbol del
-   * servidor. Sin esto se seguía viendo la lista anterior hasta recargar.
+   * Los props de /admin vienen del servidor. Solo se vuelven a pedir después
+   * de guardar algo; cambiar de pestaña no debe repetir esa carga completa.
    */
   const refresh = () => {
+    const now = Date.now();
+    if (now - lastRefreshAt.current < 1500) return;
+    lastRefreshAt.current = now;
     setRefreshKey((k) => k + 1);
     startTransition(() => router.refresh());
   };
 
   const selectTab = (id: Tab) => {
     setTab(id);
-    refresh();
   };
 
   useEffect(() => {
     if (wantedTab && ALL_TABS.includes(wantedTab as Tab)) {
       setTab(wantedTab as Tab);
-      refresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantedTab]);
-
-  // Al volver a la pestaña del navegador también se refresca: los cambios
-  // hechos en otra ventana (o por otro administrador) aparecen de inmediato.
-  useEffect(() => {
-    const maybeRefresh = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", maybeRefresh);
-    window.addEventListener("focus", maybeRefresh);
-    return () => {
-      document.removeEventListener("visibilitychange", maybeRefresh);
-      window.removeEventListener("focus", maybeRefresh);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     fetch("/api/categories", { cache: "no-store" })

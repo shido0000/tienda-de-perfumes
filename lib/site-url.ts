@@ -1,4 +1,4 @@
-import { getSettings } from "./settings";
+import { getSettings, type SettingsDTO } from "./settings";
 
 /**
  * URL pública del sitio.
@@ -17,9 +17,9 @@ import { getSettings } from "./settings";
  * Nunca devuelve un dominio inventado: si no hay ninguno, devuelve "" y quien
  * la use omite el dato en vez de mentirle a Google.
  */
-export async function getSiteUrl(): Promise<string> {
-  const settings = await getSettings().catch(() => null);
-  const fromDb = settings?.siteUrl?.trim();
+export async function getSiteUrl(settings?: SettingsDTO | null): Promise<string> {
+  const resolved = settings ?? (await getSettings().catch(() => null));
+  const fromDb = resolved?.siteUrl?.trim();
 
   // Una URL guardada del tipo "…-6x5vec3ke-nocoder1.vercel.app" es la dirección
   // de UN deploy, no la del sitio: cambia en cada publicación y desaparece. Si

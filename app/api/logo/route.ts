@@ -5,6 +5,21 @@ import { logoVersion } from "@/lib/pwa-icons";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const ICON_CACHE_LIMIT = 8;
+const iconCache = new Map<string, Uint8Array>();
+
+function rememberIcon(key: string, bytes: Uint8Array): Uint8Array {
+  const cached = iconCache.get(key);
+  if (cached) return cached;
+  iconCache.set(key, bytes);
+  while (iconCache.size > ICON_CACHE_LIMIT) {
+    const oldest = iconCache.keys().next().value;
+    if (oldest === undefined) break;
+    iconCache.delete(oldest);
+  }
+  return bytes;
+}
+
 /**
  * Sirve el logo de la tienda (que se guarda en la base como data URL base64)
  * como una imagen aparte.
@@ -112,12 +127,13 @@ export async function GET(req: Request) {
       .png()
       .toBuffer();
 
-    return new NextResponse(new Uint8Array(png), {
+    const cached = rememberIcon(etag, new Uint8Array(png));
+    return new NextResponse(new Uint8Array(cached), {
       status: 200,
       headers: {
         ...cacheHeaders,
         "Content-Type": "image/png",
-        "Content-Length": String(png.length),
+        "Content-Length": String(cached.length),
       },
     });
   } catch {

@@ -26,11 +26,12 @@ import { appleTouchIcon, logoSrc, logoVersion } from "@/lib/pwa-icons";
  */
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
-  const base = (await getSiteUrl()) || undefined;
+  const base = (await getSiteUrl(s)) || undefined;
+  const version = logoVersion(s.logoUrl);
   // El logo vive en la base como data URL (base64). Referenciarlo así dentro
   // del <head> obligaba a repetir el base64 en cada página; /api/logo lo sirve
   // aparte y cacheable. Si no hay logo, cae al icono por defecto.
-  const icon = s.logoUrl ? logoSrc(s.logoUrl) : "/icons/icon.svg";
+  const icon = s.logoUrl ? logoSrc(s.logoUrl, version) : "/icons/icon.svg";
 
   return {
     metadataBase: base ? new URL(base) : undefined,
@@ -45,7 +46,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // un ícono distinto cambia esta URL, el navegador vuelve a leer el
     // manifiesto y actualiza el ícono de la app instalada SIN duplicarla
     // (el `id` del manifiesto es fijo: "/").
-    manifest: `/manifest.webmanifest?v=${logoVersion(s.logoUrl)}`,
+    manifest: `/manifest.webmanifest?v=${version}`,
     appleWebApp: {
       capable: true,
       title: s.brand,
@@ -57,7 +58,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [{ url: icon }],
-      apple: [{ url: appleTouchIcon(s.logoUrl), sizes: "180x180" }],
+      apple: [{ url: appleTouchIcon(s.logoUrl, version), sizes: "180x180" }],
     },
     openGraph: {
       type: "website",
@@ -117,10 +118,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [settings, user, siteUrl, manager] = await Promise.all([
-    getSettings(),
+  const settings = await getSettings();
+  const [user, siteUrl, manager] = await Promise.all([
     getCurrentUser().catch(() => null),
-    getSiteUrl(),
+    getSiteUrl(settings),
     getRefManager().catch(() => null),
   ]);
 
@@ -150,7 +151,7 @@ export default async function RootLayout({
         <SettingsProvider initial={clientSettings}>
           <ToastProvider>
             <ConfirmProvider>
-              <CartProvider>
+              <CartProvider initialUser={user}>
                 <NavigationProgress />
                 {manager ? <ManagerVisitTracker /> : null}
                 <VisitTracker />

@@ -27,6 +27,7 @@ export async function GET() {
       updatedAt: { lt: cutoff },
     },
     orderBy: { updatedAt: "asc" },
+    take: 50,
     include: {
       items: { select: { name: true } },
       user: { select: { name: true, email: true, phone: true } },

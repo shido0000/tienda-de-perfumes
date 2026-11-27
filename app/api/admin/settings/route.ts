@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/session";
 import { parseCurrencies } from "@/lib/currency";
 import { sanitizeSiteTexts } from "@/lib/site-texts";
 import { parseJson, stringifyJson } from "@/lib/json";
+import { invalidateSettingsCache } from "@/lib/settings";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -149,6 +150,7 @@ export async function PUT(req: Request) {
     update: data,
     create: { id: "singleton", ...data },
   });
+  invalidateSettingsCache();
 
   // Historial de cotizaciones: si alguna tasa cambió, guardamos una foto con
   // fecha. Las reservas viejas conservan su precio (ya congelado por línea), así
@@ -234,6 +236,7 @@ export async function PATCH(req: Request) {
     update: data,
     create: { id: "singleton", ...data },
   });
+  invalidateSettingsCache();
 
   return NextResponse.json({ settings });
 }
