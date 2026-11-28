@@ -15,10 +15,17 @@ export async function verifyTokenEdge(
   token: string | undefined,
 ): Promise<string | null> {
   if (!token) return null;
+
+  const configured = process.env.JWT_SECRET;
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!configured || configured === "dev-secret-change-me")
+  ) {
+    return null;
+  }
+
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "dev-secret-change-me",
-    );
+    const secret = new TextEncoder().encode(configured || "dev-secret-change-me");
     const { payload } = await jwtVerify(token, secret);
     return (payload.sub as string) ?? null;
   } catch {

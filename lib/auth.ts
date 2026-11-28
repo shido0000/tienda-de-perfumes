@@ -6,8 +6,18 @@ import jwt from "jsonwebtoken";
  * Node's crypto, so never import this from middleware.ts (see lib/edge-auth.ts).
  */
 
-const SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const TOKEN_TTL = "7d";
+
+function getSecret(): string {
+  const configured = process.env.JWT_SECRET;
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!configured || configured === "dev-secret-change-me")
+  ) {
+    throw new Error("JWT_SECRET no configurado en el entorno de producción");
+  }
+  return configured || "dev-secret-change-me";
+}
 
 export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 10);
@@ -21,14 +31,14 @@ export async function verifyPassword(
 }
 
 export function signToken(userId: string): string {
-  return jwt.sign({ sub: userId }, SECRET, { expiresIn: TOKEN_TTL });
+  return jwt.sign({ sub: userId }, getSecret(), { expiresIn: TOKEN_TTL });
 }
 
 /** Returns the user id, or null when the token is missing or invalid. */
 export function verifyToken(token: string | undefined): string | null {
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, SECRET) as { sub?: string };
+    const payload = jwt.verify(token, getSecret()) as { sub?: string };
     return payload.sub ?? null;
   } catch {
     return null;

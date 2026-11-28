@@ -1,7 +1,7 @@
 /**
  * Trabajo automático diario.
  *
- * Vercel lo llama solo (ver `vercel.json` → crons). Hace tres cosas, en orden:
+ * GitHub Actions lo llama solo (ver `.github/workflows/cron-outbox.yml`). Hace tres cosas, en orden:
  *
  * 1. Genera los recordatorios de reposición: reservas entregadas hace
  *    `repurchaseDays` días, todavía sin recordatorio, con su perfume.
@@ -30,7 +30,7 @@ async function authorized(request: Request): Promise<boolean> {
   const admin = await requireAdmin().catch(() => null);
   if (admin) return true;
 
-  // 2) Vercel Cron, con CRON_SECRET.
+  // 2) GitHub Actions Cron, con CRON_SECRET.
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return true;
   const header = request.headers.get("authorization") ?? "";
@@ -68,7 +68,7 @@ async function run(request: Request) {
   });
 }
 
-// Vercel Cron llama con GET; el botón del panel también.
+// GitHub Actions Cron llama con POST; el botón del panel usa GET.
 export async function GET(request: Request) {
   return run(request);
 }

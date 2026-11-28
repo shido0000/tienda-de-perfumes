@@ -1,0 +1,26 @@
+name: Cron outbox
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: cron-outbox
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Procesar outbox
+        env:
+          SITE_URL: ${{ vars.RENDER_SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$SITE_URL"
+          curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${SITE_URL%/}/api/cron/outbox"
