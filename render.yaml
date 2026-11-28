@@ -23,9 +23,9 @@ services:
       - key: RENDER
         value: "true"
       - key: NEXT_PUBLIC_SITE_URL
-        value: https://tienda-de-perfumes.onrender.com
+        value: https://tienda-de-perfumes-e5co.onrender.com
       - key: D1_PROXY_URL
-        value: https://tienda-de-perfumes.jonyperez1099.workers.dev/api/internal/d1
+        value: https://tienda-de-perfumes.mist-and-mood.workers.dev/api/internal/d1
       - key: D1_PROXY_TOKEN
         sync: false
       - key: JWT_SECRET
