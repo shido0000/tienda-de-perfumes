@@ -16,7 +16,6 @@ export function AccountProfile({
     name: string | null;
     email: string;
     phone: string | null;
-    passwordSet: boolean;
   };
 }) {
   const router = useRouter();
@@ -36,7 +35,7 @@ export function AccountProfile({
 
     // Cambiar la contraseña es opcional: si el campo nuevo está vacío, se
     // guardan solo los datos y la contraseña queda como estaba.
-    if (newPassword && initial.passwordSet && !currentPassword) {
+    if (newPassword && !currentPassword) {
       setError("Para cambiar la contraseña escribí la actual. Si no querés cambiarla, dejá vacío el campo «Contraseña nueva».");
       setBusy(false);
       return;
@@ -57,7 +56,7 @@ export function AccountProfile({
       phone: phone.trim(),
     };
     if (newPassword) {
-      if (initial.passwordSet) payload.currentPassword = currentPassword;
+      payload.currentPassword = currentPassword;
       payload.newPassword = newPassword;
     }
 
@@ -120,25 +119,19 @@ export function AccountProfile({
       </section>
 
       <section className="rounded-card border border-line bg-surface p-6">
-        <h2 className="text-h3">
-          {initial.passwordSet ? "Cambiar contraseña" : "Crear contraseña"}
-        </h2>
+        <h2 className="text-h3">Cambiar contraseña</h2>
         <p className="mt-1 text-xs text-muted">
-          {initial.passwordSet
-            ? "Dejalo vacío si no querés cambiarla ahora."
-            : "Entraste con Google. Si querés, agregá una contraseña para entrar también con email."}
+          Dejalo vacío si no querés cambiarla ahora.
         </p>
 
-        {initial.passwordSet && (
-          <PasswordField
-            id="current-password"
-            label="Contraseña actual"
-            value={currentPassword}
-            onChange={setCurrentPassword}
-            autoComplete="current-password"
-            className={inputClass}
-          />
-        )}
+        <PasswordField
+          id="current-password"
+          label="Contraseña actual"
+          value={currentPassword}
+          onChange={setCurrentPassword}
+          autoComplete="current-password"
+          className={inputClass}
+        />
 
         <PasswordField
           id="new-password"

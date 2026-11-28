@@ -24,8 +24,6 @@ services:
         value: "true"
       - key: NEXT_PUBLIC_SITE_URL
         value: https://mist-and-mood.onrender.com
-      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
-        sync: false
       - key: D1_PROXY_URL
         value: https://tienda-de-perfumes.mist-and-mood.workers.dev/api/internal/d1
       - key: D1_PROXY_TOKEN

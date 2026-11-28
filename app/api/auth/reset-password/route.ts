@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     const passwordHash = await hashPassword(parsed.data.password);
     await prisma.user.update({
       where: { id: row.userId },
-      data: { passwordHash, passwordSet: true },
+      data: { passwordHash },
     });
     await prisma.passwordResetToken.updateMany({
       where: { userId: row.userId, usedAt: null },
