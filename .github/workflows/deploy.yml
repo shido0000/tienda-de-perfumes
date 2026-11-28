@@ -43,7 +43,7 @@ jobs:
         run: |
           test -n "$RENDER_API_KEY"
           test -n "$RENDER_SERVICE_ID"
-          curl --fail --silent --show-error -X POST \
+          curl --fail --silent --show-error --connect-timeout 15 --max-time 120 -X POST \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Accept: application/json" \
             -H "Content-Type: application/json" \
