@@ -3,9 +3,9 @@ previews:
 
 services:
   - type: web
-    name: tienda-de-perfumes
+    name: mist-and-mood
     runtime: node
-    plan: 1c-2g
+    plan: free
     region: oregon
     branch: main
     numInstances: 1
@@ -23,7 +23,7 @@ services:
       - key: RENDER
         value: "true"
       - key: NEXT_PUBLIC_SITE_URL
-        value: https://tienda-de-perfumes-e5co.onrender.com
+        value: https://mist-and-mood.onrender.com
       - key: D1_PROXY_URL
         value: https://tienda-de-perfumes.mist-and-mood.workers.dev/api/internal/d1
       - key: D1_PROXY_TOKEN
