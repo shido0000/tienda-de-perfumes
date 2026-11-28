@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { normalizeProduct } from "@/lib/normalize-product";
-import { withPublicImages } from "@/lib/image-url";
+import { publicImages } from "@/lib/image-url";
 import { getRefManager, withManagerPrice } from "@/lib/manager";
 import { stringifyJson } from "@/lib/json";
 import { z } from "zod";
@@ -77,14 +77,38 @@ export async function GET(req: Request) {
       ],
     },
     orderBy,
+    select: {
+      id: true,
+      name: true,
+      brand: true,
+      description: true,
+      category: true,
+      categoryId: true,
+      notes: true,
+      price: true,
+      compareAtPrice: true,
+      currency: true,
+      images: true,
+      visible: true,
+      stock: true,
+      duration: true,
+      occasion: true,
+      gender: true,
+    },
   });
 
-  // El precio de costo jamás sale al público: se omite explícitamente.
+  // El precio de costo jamás se consulta: no existe en el `select` público.
   // `price`/`compareAtPrice` van como NÚMEROS (Prisma los devuelve Decimal).
-  // Las fotos se reescriben a /api/img (con caché) para no enviar base64.
+  // La grilla sólo pinta la primera foto, así que no enviamos las demás.
   const manager = await getRefManager().catch(() => null);
-  const safe = products.map(({ costCup: _cost, ...rest }) =>
-    withManagerPrice(normalizeProduct(withPublicImages(rest)), manager),
+  const safe = products.map((product) =>
+    withManagerPrice(
+      normalizeProduct({
+        ...product,
+        images: publicImages(product.id, product.images).slice(0, 1),
+      }),
+      manager,
+    ),
   );
   return NextResponse.json({ products: safe });
 }

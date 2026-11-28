@@ -30,7 +30,11 @@ export async function POST(req: Request) {
   const user = await prisma.user.findUnique({ where: { email } });
   // Same message whether the email is unknown or the password is wrong —
   // telling them apart lets anyone enumerate who has an account.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  if (
+    !user ||
+    user.passwordSet === false ||
+    !(await verifyPassword(password, user.passwordHash))
+  ) {
     return NextResponse.json(
       { error: "Email o contraseña incorrectos" },
       { status: 401 },

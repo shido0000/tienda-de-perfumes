@@ -17,6 +17,8 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
+  passwordSet  Boolean  @default(true)
+  googleSub    String?  @unique
   name         String?
   phone        String?
   role         String   @default("CLIENT") // CLIENT | ADMIN | GESTOR
@@ -31,14 +33,15 @@ model User {
   /// Enlace activo: si está apagado, los enlaces de este gestor dejan de subir precios.
   managerActive    Boolean  @default(false)
 
-  reservations Reservation[]
-  wishlist     WishlistItem[]
-  cartItems    CartItem[]
-  withdrawals  WithdrawalRequest[] // legado, sin uso
-  pushSubs     PushSubscription[]
-  managedSales Reservation[]       @relation("ReservationManager")
-  payouts      ManagerPayout[]     @relation("ManagerPayouts")
-  visits       ManagerVisit[]      @relation("ManagerVisits")
+  reservations   Reservation[]
+  wishlist       WishlistItem[]
+  cartItems      CartItem[]
+  withdrawals    WithdrawalRequest[] // legado, sin uso
+  pushSubs       PushSubscription[]
+  passwordResets PasswordResetToken[]
+  managedSales   Reservation[]        @relation("ReservationManager")
+  payouts        ManagerPayout[]      @relation("ManagerPayouts")
+  visits         ManagerVisit[]       @relation("ManagerVisits")
 
   @@index([managerCode])
 }
@@ -47,18 +50,18 @@ model User {
 /// un gestor. Sirve para que el gestor vea cuánta gente le llegó por su enlace
 /// y cuánta terminó comprando.
 model ManagerVisit {
-  id          String   @id @default(cuid())
-  managerId   String
+  id         String   @id @default(cuid())
+  managerId  String
   /// Identificador anónimo del navegador (cookie mm_vid). No es la cuenta.
-  visitorId   String
+  visitorId  String
   /// Día local en formato YYYY-MM-DD: dedupe de la visita del día.
-  day         String
+  day        String
   /// Cuántas veces volvió ese navegador ese día.
-  hits        Int      @default(1)
+  hits       Int      @default(1)
   /// Cliente con sesión iniciada, si lo hubo.
-  userId      String?
-  createdAt   DateTime @default(now())
-  lastSeenAt  DateTime @default(now())
+  userId     String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
   manager User @relation("ManagerVisits", fields: [managerId], references: [id], onDelete: Cascade)
 
@@ -112,7 +115,7 @@ model CartAdd {
   productName String
   quantity    Int      @default(1)
   /// Precio unitario tal como lo vio el cliente.
-  unitPrice   Decimal 
+  unitPrice   Decimal
   currency    String   @default("ARS")
   createdAt   DateTime @default(now())
 
@@ -141,7 +144,7 @@ model Product {
   category       String   @default("General") // nombre de la categoría
   categoryId     String?
   notes          String?
-  price          Decimal 
+  price          Decimal
   /// Precio anterior, solo para mostrar la REBAJA tachada. null = sin rebaja.
   compareAtPrice Decimal?
   currency       String   @default("CUP")
@@ -182,14 +185,14 @@ model Reservation {
   code              String   @unique
   userId            String
   currency          String
-  subtotal          Decimal 
+  subtotal          Decimal
   deliveryType      String // PICKUP | DELIVERY
   address           String?
   latitude          Float?
   longitude         Float?
   distanceKm        Float?
   shippingCost      Decimal  @default(0)
-  total             Decimal 
+  total             Decimal
   paymentMethod     String // CASH | TRANSFER
   transferProofUrl  String?
   status            String   @default("PENDING") // PENDING | CONFIRMED | PREPARING | SHIPPED | DELIVERED | CANCELLED
@@ -227,7 +230,7 @@ model ManagerPayout {
   id        String   @id @default(cuid())
   managerId String
   /// Importe pagado (moneda de la tienda).
-  amount    Decimal 
+  amount    Decimal
   currency  String
   note      String?
   createdAt DateTime @default(now())
@@ -397,7 +400,7 @@ model PushSubscription {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   endpoint  String   @unique
-  p256dh    String  
+  p256dh    String
   auth      String
   createdAt DateTime @default(now())
 
@@ -427,7 +430,7 @@ model CampaignTemplate {
   id        String   @id @default(cuid())
   title     String
   platform  String   @default("WHATSAPP") // FACEBOOK | INSTAGRAM | WHATSAPP | TWITTER
-  message   String  
+  message   String
   link      String?
   /// Cuántas veces se usó (se incrementa al copiarlo desde el panel).
   uses      Int      @default(0)
@@ -453,7 +456,7 @@ model Combo {
   /// como ALTER destructivo y el deploy se detenga. Si algún día hace falta
   /// más precisión, se hace en dos pasos (columna nueva → copiar datos →
   /// borrar la vieja), nunca cambiando la columna en el sitio.
-  price          Decimal 
+  price          Decimal
   /// Precio de lista (suma normal de los productos) para mostrar el ahorro.
   compareAtPrice Decimal?
   currency       String   @default("CUP")
@@ -547,7 +550,7 @@ model Review {
   /// Nombre visible (se publica solo el primer nombre).
   authorName String
   rating     Int      @default(5)
-  comment    String  
+  comment    String
   /// PENDING | APPROVED | REJECTED
   status     String   @default("PENDING")
   createdAt  DateTime @default(now())
@@ -565,7 +568,7 @@ model CheckoutIntent {
   email       String?
   phone       String?
   /// Resumen del carrito en texto ("Rosa + Cedro ×1 · Noir ×2").
-  summary     String   
+  summary     String
   itemCount   Int       @default(0)
   total       Decimal   @default(0)
   currency    String    @default("CUP")
@@ -615,11 +618,11 @@ model OutboxMessage {
   /// Destinatario: correo, teléfono sin signos, o el id de usuario para PUSH.
   recipient String
   subject   String    @default("")
-  body      String   
+  body      String
   /// PENDING | SENT | FAILED | SKIPPED
   status    String    @default("PENDING")
   /// Motivo legible del estado (por qué falló o por qué se omitió).
-  error     String?  
+  error     String?
   attempts  Int       @default(0)
   /// Clave de deduplicación: evita mandar dos veces el mismo aviso.
   /// Ej.: "restock:<alertId>", "repurchase:<reservationId>".
@@ -643,4 +646,17 @@ model CurrencyRateLog {
   createdAt DateTime @default(now())
 
   @@index([code, createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

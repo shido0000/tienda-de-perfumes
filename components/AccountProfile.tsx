@@ -12,7 +12,12 @@ import { PasswordField } from "@/components/ui/PasswordField";
 export function AccountProfile({
   initial,
 }: {
-  initial: { name: string | null; email: string; phone: string | null };
+  initial: {
+    name: string | null;
+    email: string;
+    phone: string | null;
+    passwordSet: boolean;
+  };
 }) {
   const router = useRouter();
   const [name, setName] = useState(initial.name ?? "");
@@ -31,13 +36,13 @@ export function AccountProfile({
 
     // Cambiar la contraseña es opcional: si el campo nuevo está vacío, se
     // guardan solo los datos y la contraseña queda como estaba.
-    if (newPassword && !currentPassword) {
+    if (newPassword && initial.passwordSet && !currentPassword) {
       setError("Para cambiar la contraseña escribí la actual. Si no querés cambiarla, dejá vacío el campo «Contraseña nueva».");
       setBusy(false);
       return;
     }
-    if (newPassword && newPassword.length < 6) {
-      setError("La contraseña nueva debe tener al menos 6 caracteres.");
+    if (newPassword && newPassword.length < 8) {
+      setError("La contraseña nueva debe tener al menos 8 caracteres.");
       setBusy(false);
       return;
     }
@@ -52,7 +57,7 @@ export function AccountProfile({
       phone: phone.trim(),
     };
     if (newPassword) {
-      payload.currentPassword = currentPassword;
+      if (initial.passwordSet) payload.currentPassword = currentPassword;
       payload.newPassword = newPassword;
     }
 
@@ -115,17 +120,25 @@ export function AccountProfile({
       </section>
 
       <section className="rounded-card border border-line bg-surface p-6">
-        <h2 className="text-h3">Cambiar contraseña</h2>
-        <p className="mt-1 text-xs text-muted">Dejalo vacío si no querés cambiarla ahora.</p>
+        <h2 className="text-h3">
+          {initial.passwordSet ? "Cambiar contraseña" : "Crear contraseña"}
+        </h2>
+        <p className="mt-1 text-xs text-muted">
+          {initial.passwordSet
+            ? "Dejalo vacío si no querés cambiarla ahora."
+            : "Entraste con Google. Si querés, agregá una contraseña para entrar también con email."}
+        </p>
 
-        <PasswordField
-          id="current-password"
-          label="Contraseña actual"
-          value={currentPassword}
-          onChange={setCurrentPassword}
-          autoComplete="current-password"
-          className={inputClass}
-        />
+        {initial.passwordSet && (
+          <PasswordField
+            id="current-password"
+            label="Contraseña actual"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            autoComplete="current-password"
+            className={inputClass}
+          />
+        )}
 
         <PasswordField
           id="new-password"
@@ -133,8 +146,8 @@ export function AccountProfile({
           value={newPassword}
           onChange={setNewPassword}
           autoComplete="new-password"
-          minLength={6}
-          hint="Mínimo 6 caracteres."
+          minLength={8}
+          hint="Mínimo 8 caracteres."
           className={inputClass}
         />
       </section>

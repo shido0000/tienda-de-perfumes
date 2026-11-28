@@ -384,7 +384,7 @@ export async function POST(req: Request) {
       `- Cómo reservar: agregar al carrito, elegir retiro o envío con el mapa en el checkout, confirmar y la tienda escribe por WhatsApp con un código de reserva.`,
       `- Familias olfativas disponibles: ${categories.map((c) => c.name).join(", ") || "no informadas"}.`,
       `- Cómo crear cuenta: botón "Ingresar"/"Entrar" arriba a la derecha, elegir "Crear cuenta" con nombre, correo y contraseña.`,
-      `- Cómo iniciar sesión: "Ingresar" arriba a la derecha con correo y contraseña; la contraseña se puede recuperar escribiendo por WhatsApp. En "Mi cuenta" se editan nombre, teléfono y contraseña.`,
+       `- Cómo iniciar sesión: "Ingresar" arriba a la derecha con correo y contraseña, o con Google; si olvidaste la contraseña, usá "Olvidé mi contraseña" y te enviamos un link por email. En "Mi cuenta" se editan nombre, teléfono y contraseña.`,
       `- Cómo dejar una reseña: en la ficha de un perfume, sección "Opiniones"; hace falta haber reservado ese perfume e iniciar sesión; la tienda la aprueba antes de publicarla.`,
       `- Cómo instalar la app: Android/Chrome muestra el aviso "Instalar app"; iPhone/Safari usa Compartir → Añadir a pantalla de inicio.`,
       `- Perfume agotado: en su ficha hay "Avísame cuando llegue" (deja WhatsApp o correo y se avisa al reponer). En la portada, "Enterate primero" suscribe a novedades.`,
@@ -446,7 +446,7 @@ export async function POST(req: Request) {
     if (has("cuenta", "registrar", "registrarme", "registro", "inscribir")) {
       return NextResponse.json(
         base(
-          `Crear tu cuenta es gratis y toma un minuto:\n1. Arriba a la derecha tocá "Ingresar" (o "Entrar").\n2. Elegí "Crear cuenta" y completá tu nombre, correo y una contraseña.\n3. Listo: ya podés reservar, guardar favoritos y dejar reseñas.\nSi el correo ya está en uso, probá con otro o recuperá el acceso escribiéndonos por WhatsApp.`,
+           `Crear tu cuenta es gratis y toma un minuto:\n1. Arriba a la derecha tocá "Ingresar" (o "Entrar").\n2. Elegí "Crear cuenta" y completá tu nombre, correo y una contraseña, o tocá el botón de Google.\n3. Listo: ya podés reservar, guardar favoritos y dejar reseñas.\nSi el correo ya está en uso, entrá con Google o usá "Olvidé mi contraseña".`,
           ["¿Cómo inicio sesión?", "¿Cómo reservo?", "¿Qué perfumes tienen?"],
         ),
       );
@@ -455,7 +455,7 @@ export async function POST(req: Request) {
     if (has("sesion", "login", "entrar", "ingresar", "contrasena", "clave", "usuario", "perfil")) {
       return NextResponse.json(
         base(
-          `Para iniciar sesión entrá arriba a la derecha en "Ingresar", poné tu correo y contraseña y tocá "Entrar".\n• Si olvidaste la contraseña: escribinos por WhatsApp y te ayudamos a recuperarla.\n• Una vez dentro, en "Mi cuenta" podés cambiar tu nombre, teléfono y contraseña.`,
+           `Para iniciar sesión entrá arriba a la derecha en "Ingresar", poné tu correo y contraseña y tocá "Entrar", o usá el botón de Google.\n• Si olvidaste la contraseña: tocá "Olvidé mi contraseña", poné tu email y te enviamos un link por email.\n• Una vez dentro, en "Mi cuenta" podés cambiar tu nombre, teléfono y contraseña.`,
           ["¿Cómo me registro?", "Cómo cambio mi contraseña", "Ver mis reservas"],
         ),
       );

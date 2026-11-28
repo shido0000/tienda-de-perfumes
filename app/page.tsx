@@ -24,6 +24,22 @@ async function loadCatalog(manager: ManagerInfo | null): Promise<ProductDTO[]> {
     const products = await prisma.product.findMany({
       where: { visible: true },
       orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        brand: true,
+        description: true,
+        category: true,
+        categoryId: true,
+        notes: true,
+        gender: true,
+        price: true,
+        compareAtPrice: true,
+        currency: true,
+        images: true,
+        visible: true,
+        stock: true,
+      },
     });
     return products.map<ProductDTO>((p) => ({
       id: p.id,
@@ -86,7 +102,12 @@ export default async function HomePage() {
   const categories = categoryRows.length
     ? categoryRows.map((c) => c.name)
     : [...new Set(products.map((p) => p.category))].sort();
-  const hero = products[0] ?? null;
+  const featuredProducts = products.slice(0, 5).map((p) => ({
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    image: p.images[0] ?? null,
+  }));
   const t = settings.siteTexts ?? DEFAULT_SITE_TEXTS;
 
   return (
@@ -95,8 +116,7 @@ export default async function HomePage() {
         brand={settings.brand}
         tagline={settings.tagline}
         storeAddress={settings.storeAddress}
-        heroImage={hero?.images[0] ?? null}
-        heroName={hero?.name ?? null}
+        featuredProducts={featuredProducts}
         title={settings.heroTitle}
         subtitle={settings.heroSubtitle}
         ctaLabel={t.heroCta}

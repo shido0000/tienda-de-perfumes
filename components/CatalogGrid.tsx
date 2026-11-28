@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react/dist/ssr";
 import { ProductCard } from "./ProductCard";
@@ -58,8 +58,10 @@ export function CatalogGrid({
     [...new Set(initialProducts.map((p) => p.brand))].sort(),
   );
 
-  // Categorías administrables: alimentan el filtro del catálogo.
+  // Categorías administrables: la página ya las envió por SSR, así que sólo
+  // se piden a la API cuando no vienen en los props.
   useEffect(() => {
+    if (initialCategories.length) return;
     fetch("/api/categories")
       .then((r) => r.json())
       .then((d: { categories?: CategoryDTO[] }) => {
@@ -67,7 +69,7 @@ export function CatalogGrid({
         if (names.length) setCategories(names);
       })
       .catch(() => {});
-  }, []);
+  }, [initialCategories.length]);
 
   const activeFilters =
     (category !== "all" ? 1 : 0) +
@@ -78,7 +80,25 @@ export function CatalogGrid({
     (min.trim() ? 1 : 0) +
     (max.trim() ? 1 : 0);
 
+  const filterKey = JSON.stringify([
+    query,
+    category,
+    brand,
+    inStock,
+    occasion,
+    gender,
+    min,
+    max,
+    sort,
+  ]);
+  const previousFilters = useRef<string | null>(null);
+
   useEffect(() => {
+    const previous = previousFilters.current;
+    previousFilters.current = filterKey;
+    // El SSR ya trajo el catálogo inicial: no volvemos a pedirlo al hidratar.
+    if (previous === null || previous === filterKey) return;
+
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -114,7 +134,7 @@ export function CatalogGrid({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [query, category, brand, inStock, occasion, gender, min, max, sort]);
+  }, [filterKey]);
 
   const clear = () => {
     setQuery("");

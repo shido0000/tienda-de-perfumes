@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { cleanEditableText } from "@/lib/editable-text";
-import { SafeImage } from "@/components/SafeImage";
+import { HeroProductCarousel } from "@/components/HeroProductCarousel";
 
 /**
  * Hero: una sola declaración focal, un halo cálido detrás de la botella
@@ -17,8 +17,7 @@ export function Hero({
   brand,
   tagline,
   storeAddress,
-  heroImage,
-  heroName,
+  featuredProducts,
   title,
   subtitle,
   ctaLabel,
@@ -34,8 +33,12 @@ export function Hero({
   brand: string;
   tagline: string;
   storeAddress: string;
-  heroImage: string | null;
-  heroName: string | null;
+  featuredProducts: {
+    id: string;
+    name: string;
+    brand: string;
+    image: string | null;
+  }[];
   /** Textos editables desde Administración → Contenido. */
   title?: string;
   subtitle?: string;
@@ -121,27 +124,11 @@ export function Hero({
           </dl>
         </div>
 
-        <div className="relative mx-auto flex w-full max-w-sm items-center justify-center">
-          <div aria-hidden className="halo absolute inset-0 rounded-full" />
-          <div className="reveal relative w-full">
-            {heroImage ? (
-              <SafeImage
-                src={heroImage}
-                alt={imageAlt?.trim() || (heroName ? `${heroName} — ${brand}` : brand)}
-                className="mx-auto aspect-[3/4] w-full max-w-[320px] rounded-card object-cover shadow-theme ring-1 ring-line/60"
-              />
-            ) : (
-              <div className="mx-auto flex aspect-[3/4] w-full max-w-[320px] items-center justify-center rounded-card border border-line bg-surface font-display text-2xl text-muted shadow-theme">
-                {brand}
-              </div>
-            )}
-            {heroName && (
-              <p className="glass-panel float-slow mx-auto mt-[-1.25rem] w-max rounded-full px-4 py-2 text-center font-display text-sm font-semibold text-ink shadow-md">
-                {heroName}
-              </p>
-            )}
-          </div>
-        </div>
+        <HeroProductCarousel
+          products={featuredProducts}
+          brand={brand}
+          imageAlt={imageAlt}
+        />
       </div>
 
       <p className="relative mx-auto w-full max-w-6xl px-4 pb-6 text-[11px] uppercase tracking-[0.18em] text-muted sm:px-6">

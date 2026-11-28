@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { publicImageUrl } from "@/lib/image-url";
+import { publicImages } from "@/lib/image-url";
 import { DEFAULT_SITE_TEXTS, type SiteTexts } from "@/lib/site-texts";
 import { ProductCard } from "./ProductCard";
 import { getRefManager, withManagerPrice } from "@/lib/manager";
@@ -26,6 +26,22 @@ export async function SaleSection({
       where: { visible: true, compareAtPrice: { not: null } },
       orderBy: { updatedAt: "desc" },
       take: 6,
+      select: {
+        id: true,
+        name: true,
+        brand: true,
+        description: true,
+        category: true,
+        categoryId: true,
+        notes: true,
+        gender: true,
+        price: true,
+        compareAtPrice: true,
+        currency: true,
+        images: true,
+        visible: true,
+        stock: true,
+      },
     });
     products = rows
       .filter(
@@ -43,7 +59,7 @@ export async function SaleSection({
         price: Number(p.price),
         compareAtPrice: p.compareAtPrice === null ? null : Number(p.compareAtPrice),
         currency: p.currency,
-        images: p.images.length ? [publicImageUrl(p.id, 0, p.images[0])] : [],
+        images: publicImages(p.id, p.images).slice(0, 1),
         visible: p.visible,
         stock: p.stock,
       }))

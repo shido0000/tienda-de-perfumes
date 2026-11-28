@@ -13,7 +13,15 @@ export async function GET() {
 
   const row = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+      passwordSet: true,
+    },
   });
   if (!row) return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 404 });
   return NextResponse.json({ user: row });
@@ -33,7 +41,7 @@ const schema = z.object({
     .optional()
     .or(z.literal("")),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6, "La contraseña nueva debe tener al menos 6 caracteres").optional(),
+  newPassword: z.string().min(8, "La contraseña nueva debe tener al menos 8 caracteres").optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -53,18 +61,24 @@ export async function PATCH(req: Request) {
   if (!row) return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 404 });
 
   let passwordHash: string | undefined;
+  let passwordSet: boolean | undefined;
   if (newPassword) {
-    if (!currentPassword) {
-      return NextResponse.json(
-        { error: "Escribí tu contraseña actual para cambiarla." },
-        { status: 400 },
-      );
+    if (row.passwordSet === false) {
+      passwordHash = await hashPassword(newPassword);
+      passwordSet = true;
+    } else {
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: "Escribí tu contraseña actual para cambiarla." },
+          { status: 400 },
+        );
+      }
+      const ok = await verifyPassword(currentPassword, row.passwordHash);
+      if (!ok) {
+        return NextResponse.json({ error: "La contraseña actual no es correcta." }, { status: 403 });
+      }
+      passwordHash = await hashPassword(newPassword);
     }
-    const ok = await verifyPassword(currentPassword, row.passwordHash);
-    if (!ok) {
-      return NextResponse.json({ error: "La contraseña actual no es correcta." }, { status: 403 });
-    }
-    passwordHash = await hashPassword(newPassword);
   }
 
   // Se guarda solo lo que vino en la petición: enviar el teléfono no toca el
@@ -73,10 +87,12 @@ export async function PATCH(req: Request) {
     name?: string | null;
     phone?: string | null;
     passwordHash?: string;
+    passwordSet?: boolean;
   } = {};
   if (name !== undefined) data.name = name.trim() || null;
   if (phone !== undefined) data.phone = phone.trim() || null;
   if (passwordHash) data.passwordHash = passwordHash;
+  if (passwordSet !== undefined) data.passwordSet = passwordSet;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No hay cambios para guardar." }, { status: 400 });
@@ -85,7 +101,15 @@ export async function PATCH(req: Request) {
   const updated = await prisma.user.update({
     where: { id: user.id },
     data,
-    select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+      passwordSet: true,
+    },
   });
 
   return NextResponse.json({ user: updated });

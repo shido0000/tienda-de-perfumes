@@ -2,13 +2,56 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PasswordField } from "@/components/ui/PasswordField";
+import { useSiteTexts } from "@/lib/use-site-texts";
+
+type GoogleCredentialResponse = { credential: string };
+type GoogleIdConfiguration = {
+  client_id: string;
+  callback: (response: GoogleCredentialResponse) => void;
+  nonce: string;
+  ux_mode: "popup";
+};
+type GoogleButtonOptions = {
+  theme: "outline";
+  size: "large";
+  width: number;
+  text: "signin_with" | "signup_with";
+};
+type GoogleAccounts = {
+  id: {
+    initialize: (config: GoogleIdConfiguration) => void;
+    renderButton: (parent: HTMLElement, options: GoogleButtonOptions) => void;
+  };
+};
+
+declare global {
+  interface Window {
+    google?: { accounts: GoogleAccounts };
+  }
+}
+
+function createNonce(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const t = useSiteTexts();
+  const requestedNext = params.get("next") || "/";
+  const next =
+    requestedNext.startsWith("/") && !requestedNext.startsWith("//")
+      ? requestedNext
+      : "/";
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +59,78 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const finish = (role?: string) => {
+    const target = role === "GESTOR" && next === "/" ? "/gestor" : next;
+    router.push(target);
+    router.refresh();
+  };
+
+  const handleGoogleCredential = async (response: GoogleCredentialResponse) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const nonce = sessionStorage.getItem("google-auth-nonce") ?? "";
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: response.credential, nonce }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "No pudimos entrar con Google.");
+      sessionStorage.removeItem("google-auth-nonce");
+      finish(data?.user?.role);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de red");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return;
+    let cancelled = false;
+
+    const render = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+      const nonce = createNonce();
+      sessionStorage.setItem("google-auth-nonce", nonce);
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+        nonce,
+        ux_mode: "popup",
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+        text: mode === "register" ? "signup_with" : "signin_with",
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      render();
+      return;
+    }
+
+    const existing = document.getElementById("google-gis") as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener("load", render, { once: true });
+    } else {
+      const script = document.createElement("script");
+      script.id = "google-gis";
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = render;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [googleClientId, mode]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +146,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No pudimos completar la operación.");
-      // Un gestor entra directo a su panel (salvo que ya viniera a una ruta).
-      const role = data?.user?.role;
-      const target = role === "GESTOR" && next === "/" ? "/gestor" : next;
-      router.push(target);
-      router.refresh();
+      finish(data?.user?.role);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de red");
     } finally {
@@ -151,6 +262,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </button>
         </form>
 
+        {googleClientId && (
+          <div className="mt-6">
+            <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-muted">
+              <span className="h-px flex-1 bg-line" />
+              o continuá con
+              <span className="h-px flex-1 bg-line" />
+            </div>
+            <div ref={googleButtonRef} className="mt-4 flex justify-center" />
+          </div>
+        )}
+
         {/* Aviso flotante mientras se valida la sesión y se abre la cuenta. */}
         {busy && (
           <div
@@ -186,6 +308,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 Ingresar
               </Link>
             </>
+          )}
+          {mode === "login" && (
+            <span className="mt-2 block">
+              <Link
+                href="/recuperar"
+                className="text-primary underline decoration-primary/40 underline-offset-4"
+              >
+                {t.authForgotPassword}
+              </Link>
+            </span>
           )}
         </p>
       </div>

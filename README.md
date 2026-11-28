@@ -46,9 +46,9 @@ cuenta automáticamente: la aplicación no carga datos de ejemplo ni cuentas de
 prueba. Entrá por `/login` con el correo y la contraseña de administrador que ya
 tenés y abrí **Panel** en el menú.
 
-Para cambiar la contraseña, hacelo desde **Administración → Usuarios** (o desde
-tu perfil, en *Mi cuenta*). Si no recordás la contraseña, pedile a otro
-administrador que te la restablezca desde esa misma pantalla.
+Para cambiar la contraseña, hacelo desde tu perfil, en *Mi cuenta*. Si no la
+recordás, entrá a `/recuperar` con tu email y te enviaremos un link de un solo
+uso para crear una contraseña nueva.
 
 ## Base de datos: la de producción es la única fuente de verdad
 
