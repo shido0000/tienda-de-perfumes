@@ -11,7 +11,8 @@
  */
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const EMAIL = process.env.ADMIN_EMAIL || "jonyperez1099@gmail.com";
-const PASSWORD = process.env.ADMIN_PASSWORD || "shido.0000";
+const PASSWORD = process.env.ADMIN_PASSWORD;
+if (!PASSWORD) throw new Error("Falta ADMIN_PASSWORD para ejecutar la prueba");
 
 let cookie = "";
 

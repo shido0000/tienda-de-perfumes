@@ -118,7 +118,7 @@ async function main() {
     JWT_SECRET: jwt,
     OPENROUTER_API_KEY: local.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY,
     ADMIN_EMAIL: process.env.ADMIN_EMAIL || "jonyperez1099@gmail.com",
-    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || "shido.0000",
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   };
 
   const existing = await api(`/v9/projects/${project.id}/env${q}`);

@@ -16,14 +16,38 @@
  *
  * Sale con código 1 si alguna comprobación falla.
  */
-import { PrismaClient } from "@prisma/client";
-
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "jonyperez1099@gmail.com";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "shido.0000";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
+const D1_DATABASE_ID = process.env.D1_DATABASE_ID || "c5cf1178-9e09-4a12-b567-a9aff41ad8b3";
 const PROOF = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
 
-const prisma = new PrismaClient();
+if (!ADMIN_PASSWORD) throw new Error("Falta ADMIN_PASSWORD para ejecutar la regresión");
+
+const d1Query = async (sql, params = []) => {
+  if (!CF_TOKEN || !CF_ACCOUNT) {
+    throw new Error("Faltan CLOUDFLARE_API_TOKEN o CLOUDFLARE_ACCOUNT_ID para limpiar D1");
+  }
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/d1/database/${D1_DATABASE_ID}/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CF_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sql, params: params.map(String) }),
+    },
+  );
+  const body = await res.json();
+  if (!res.ok || !body.success) {
+    throw new Error(body.errors?.[0]?.message || `D1 API respondió ${res.status}`);
+  }
+  return body.result?.[0];
+};
+
 const jar = new Map(); // nombre -> Cookie header
 let pass = 0;
 const failures = [];
@@ -283,21 +307,29 @@ const cleanup = async () => {
   section("10. Limpieza de datos de prueba");
   try {
     if (created.userId) {
-      await prisma.reservationItem.deleteMany({ where: { reservation: { userId: created.userId } } });
-      await prisma.reservation.deleteMany({ where: { userId: created.userId } });
-      await prisma.cartItem.deleteMany({ where: { userId: created.userId } }).catch(() => {});
-      await prisma.wishlistItem.deleteMany({ where: { userId: created.userId } }).catch(() => {});
-      await prisma.user.delete({ where: { id: created.userId } }).catch(() => {});
+      const statements = [
+        "DELETE FROM ReservationItem WHERE reservationId IN (SELECT id FROM Reservation WHERE userId = ?)",
+        "DELETE FROM Reservation WHERE userId = ?",
+        "DELETE FROM CartItem WHERE userId = ?",
+        "DELETE FROM WishlistItem WHERE userId = ?",
+        "DELETE FROM SiteVisit WHERE userId = ?",
+        "DELETE FROM ManagerVisit WHERE userId = ?",
+        "DELETE FROM CartAdd WHERE userId = ?",
+        "DELETE FROM PushSubscription WHERE userId = ?",
+        "DELETE FROM WithdrawalRequest WHERE userId = ?",
+        "DELETE FROM User WHERE id = ?",
+      ];
+      for (const sql of statements) {
+        await d1Query(sql, [created.userId]).catch(() => {});
+      }
       ok("Cuenta y reservas de prueba eliminadas");
     }
     for (const { productId, quantity } of created.stockUsed) {
-      await prisma.product.update({ where: { id: productId }, data: { stock: { increment: quantity } } }).catch(() => {});
+      await d1Query("UPDATE Product SET stock = stock + ? WHERE id = ?", [quantity, productId]);
     }
     if (created.stockUsed.length) ok("Stock devuelto al catálogo");
   } catch (e) {
     fail("Limpieza de datos de prueba", e.message);
-  } finally {
-    await prisma.$disconnect();
   }
 };
 

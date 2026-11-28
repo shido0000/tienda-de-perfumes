@@ -30,11 +30,9 @@ try {
     process.exit(2);
   }
 
-  const candidates = [
-    process.env.ADMIN_PASSWORD,
-    "shido.0000",
-    "Shido.0000**",
-  ].filter(Boolean);
+  const candidate = process.env.ADMIN_PASSWORD;
+  if (!candidate) throw new Error("Falta ADMIN_PASSWORD para comprobar la cuenta de administrador");
+  const candidates = [candidate];
 
   for (const admin of admins) {
     let match = null;

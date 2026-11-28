@@ -13,7 +13,11 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const manager = await findManagerByCode(code).catch(() => null);
-  const target = new URL("/", req.url);
+  const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0].trim();
+  const host = forwardedHost ?? req.headers.get("host")?.trim();
+  const protocol = req.headers.get("x-forwarded-proto")?.split(",")[0].trim() ?? "https";
+  const base = host ? `${protocol}://${host}` : process.env.NEXT_PUBLIC_SITE_URL ?? req.url;
+  const target = new URL("/", base);
 
   if (!manager) {
     target.searchParams.set("ref", "invalido");
